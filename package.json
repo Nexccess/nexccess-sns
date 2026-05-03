@@ -1,0 +1,17 @@
+{
+  "name": "nexccess-sns-pipeline",
+  "version": "1.0.0",
+  "description": "Nexccess LLC — SNS完全自動化パイプライン (Facebook / X)",
+  "main": "scripts/generate-and-post.js",
+  "scripts": {
+    "post": "node scripts/generate-and-post.js",
+    "dev": "vercel dev"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.24.0",
+    "twitter-api-v2": "^1.17.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
