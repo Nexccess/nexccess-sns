@@ -38,7 +38,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --no-package-lock
 
       # ランダムジッター: 0〜25分のランダム待機で投稿時刻を分散
       - name: Random delay (human-like jitter)
