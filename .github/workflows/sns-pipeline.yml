@@ -39,6 +39,11 @@ jobs:
       - name: Install dependencies
         run: npm install --no-package-lock
 
+      - name: Verify installation
+        run: |
+          ls node_modules/@anthropic-ai || echo "NOT FOUND"
+          npm list @anthropic-ai/sdk || echo "NOT LISTED"
+
       # ランダムジッター: 0〜25分のランダム待機で投稿時刻を分散
       - name: Random delay (human-like jitter)
         run: |
