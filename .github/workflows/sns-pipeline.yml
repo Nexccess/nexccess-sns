@@ -1,83 +1,36 @@
 name: SNS Auto-Post Pipeline
-
 on:
-  # ① content/articles.json が更新されたら即時発動
   push:
     branches: [main]
     paths:
       - 'content/articles.json'
-
-  # ② 毎日 06:00 JST (= 21:00 UTC) に定期実行
   schedule:
     - cron: '0 21 * * *'
-
-  # ③ Vercel API / 手動から叩けるトリガー
   workflow_dispatch:
     inputs:
       article_index:
-        description: 'articles.json の投稿対象インデックス (省略時は最新)'
+        description: '投稿対象インデックス'
         required: false
         default: 'latest'
-
-env:
-  NODE_VERSION: '20'
-
 jobs:
   generate-and-post:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
-
+          node-version: '20'
       - name: Install dependencies
-      run: npm install @anthropic-ai/sdk@0.24.0 twitter-api-v2@1.17.2
-
-      - name: Verify installation
-        run: |
-          ls node_modules/@anthropic-ai || echo "NOT FOUND"
-          npm list @anthropic-ai/sdk || echo "NOT LISTED"
-
-      # ランダムジッター: 0〜25分のランダム待機で投稿時刻を分散
-      - name: Random delay (human-like jitter)
-        run: |
-          DELAY=$(( RANDOM % 60 ))
-          echo "Waiting ${DELAY} seconds before posting..."
-          sleep $DELAY
-
-      - name: Generate & post to Facebook and X
+        run: npm install @anthropic-ai/sdk@0.24.0 twitter-api-v2@1.17.2
+      - name: Generate and post
         run: node scripts/generate-and-post.js
         env:
-          # Anthropic / OpenAI
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-
-          # Meta Graph API (Facebook Page)
           META_PAGE_ID: ${{ secrets.META_PAGE_ID }}
           META_PAGE_ACCESS_TOKEN: ${{ secrets.META_PAGE_ACCESS_TOKEN }}
-
-          # X (Twitter) API v2 — OAuth 1.0a
           X_APP_KEY: ${{ secrets.X_APP_KEY }}
           X_APP_SECRET: ${{ secrets.X_APP_SECRET }}
           X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
           X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
-
-          # Supabase (投稿ログ保存)
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-
-          # ワークフロー入力値を環境変数へ
           ARTICLE_INDEX: ${{ github.event.inputs.article_index || 'latest' }}
-
-      - name: Upload post log as artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: post-log-${{ github.run_id }}
-          path: logs/
-          retention-days: 30
