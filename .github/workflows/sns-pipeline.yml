@@ -1,36 +1,36 @@
-name: SNS Auto-Post Pipeline
+name: Gemini SNS Pipeline
+
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'content/articles.json'
-  schedule:
-    - cron: '0 21 * * *'
   workflow_dispatch:
-    inputs:
-      article_index:
-        description: '投稿対象インデックス'
-        required: false
-        default: 'latest'
+  schedule:
+    - cron: "0 1 * * *"
+
 jobs:
-  generate-and-post:
+  post:
+    name: Generate and Post
     runs-on: ubuntu-latest
     timeout-minutes: 30
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js v20
+        uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
+          cache: "npm"
+
       - name: Install dependencies
-        run: npm install @anthropic-ai/sdk@0.24.0 twitter-api-v2@1.17.2
-      - name: Generate and post
-        run: node scripts/generate-and-post.js
+        run: npm install
+
+      - name: Generate and Post
+        run: npm start
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           META_PAGE_ID: ${{ secrets.META_PAGE_ID }}
           META_PAGE_ACCESS_TOKEN: ${{ secrets.META_PAGE_ACCESS_TOKEN }}
           X_APP_KEY: ${{ secrets.X_APP_KEY }}
           X_APP_SECRET: ${{ secrets.X_APP_SECRET }}
           X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
           X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
-          ARTICLE_INDEX: ${{ github.event.inputs.article_index || 'latest' }}
