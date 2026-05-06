@@ -3,7 +3,7 @@ name: Gemini SNS Pipeline
 on:
   workflow_dispatch:
   schedule:
-  　- cron: "15 23 * * *"
+    - cron: "15 23 * * *"
 
 jobs:
   post:
