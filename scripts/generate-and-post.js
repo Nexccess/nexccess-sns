@@ -114,21 +114,8 @@ async function postToX(text) {
     console.log(`   Facebook : ${posts.facebook}`);
     console.log(`   X        : ${posts.twitter}`);
 
-    const results = await Promise.allSettled([
-      postToFacebook(posts.facebook, article),
-      postToX(posts.twitter),
-    ]);
+    await postToX(posts.twitter);
 
-    let hasError = false;
-    results.forEach((r, i) => {
-      const platform = i === 0 ? "Facebook" : "X";
-      if (r.status === "rejected") {
-        console.error(`❌ ${platform} failed:`, r.reason);
-        hasError = true;
-      }
-    });
-
-    if (hasError) process.exit(1);
     console.log("🎉 All posts completed.");
   } catch (err) {
     console.error("❌ Fatal error:", err);
