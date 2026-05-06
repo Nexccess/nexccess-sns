@@ -1,16 +1,16 @@
 {
-  "name": "nexccess-sns-pipeline",
+  "name": "nexccess-sns",
   "version": "1.0.0",
-  "lockfileVersion": 3,
-  "requires": true,
-  "packages": {
-    "": {
-      "name": "nexccess-sns-pipeline",
-      "version": "1.0.0",
-      "dependencies": {
-        "@anthropic-ai/sdk": "^0.24.0",
-        "twitter-api-v2": "^1.17.2"
-      }
-    }
+  "description": "Gemini-powered SNS auto-posting pipeline",
+  "type": "module",
+  "scripts": {
+    "start": "node scripts/generate-and-post.js"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.15.0",
+    "twitter-api-v2": "^1.17.2"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }
