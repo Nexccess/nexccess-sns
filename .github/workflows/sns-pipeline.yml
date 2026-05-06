@@ -37,7 +37,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Install dependencies
-        run: npm install --no-package-lock
+      run: npm install @anthropic-ai/sdk@0.24.0 twitter-api-v2@1.17.2
 
       - name: Verify installation
         run: |
