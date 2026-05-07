@@ -21,7 +21,9 @@ function loadArticle() {
   if (!Array.isArray(articles) || articles.length === 0) {
     throw new Error("articles.json is empty or not an array.");
   }
-  return articles[0];
+  const today = new Date();
+  const index = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / 86400000) % articles.length;
+  return articles[index];
 }
 
 // ── Gemini 2.5 Flash Lite (fetch直接呼び出し) ─────────────────────────────────
