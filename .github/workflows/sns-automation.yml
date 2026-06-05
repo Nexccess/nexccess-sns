@@ -1,0 +1,35 @@
+name: Multi-Platform SNS Automation
+
+on:
+  schedule:
+    # 毎日午前9:00 JST (0:00 UTC) に自動実行
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    # GitHub画面からいつでも手動実行できるようにする設定
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests google-genai
+
+    - name: Run SNS automation script
+      env:
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        NOTE_SESSION_ID: ${{ secrets.NOTE_SESSION_ID }}
+        FB_ACCESS_TOKEN: ${{ secrets.FB_ACCESS_TOKEN }}
+        # もし既存のX認証情報があればここに追加可能
+      run: |
+        python scripts/multi_platform_post.py
