@@ -66,7 +66,7 @@ async function postToNote(title, body) {
   const sessionId = process.env.NOTE_SESSION_ID;
 
   // Step1: 下書き作成
-  const createRes = await fetch('https://note.com/api/v2/text_notes', {
+  const createRes = await fetch('https://note.com/api/v3/text_notes', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -93,7 +93,7 @@ async function postToNote(title, body) {
   if (!noteKey) throw new Error(`note keyが取得できませんでした: ${JSON.stringify(createData)}`);
 
   // Step2: 公開
-  const publishRes = await fetch(`https://note.com/api/v2/text_notes/${noteKey}/publish`, {
+  const publishRes = await fetch(`https://note.com/api/v3/text_notes/${noteKey}/publish`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
