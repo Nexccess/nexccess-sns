@@ -81,7 +81,7 @@ async function postToFacebook(message, article) {
   if (article.url) body.link = article.url;
 
   const res = await fetch(
-    `https://graph.facebook.com/v19.0/${pageId}/feed`,
+    `https://graph.facebook.com/v21.0/${pageId}/feed`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
