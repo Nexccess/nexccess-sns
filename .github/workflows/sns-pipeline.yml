@@ -1,29 +1,23 @@
 name: Gemini SNS Pipeline
-
 on:
   workflow_dispatch:
   schedule:
     - cron: "18 22 * * *"
-
 jobs:
   post:
     name: Generate and Post
     runs-on: ubuntu-latest
     timeout-minutes: 30
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Setup Node.js v20
+      - name: Setup Node.js v22
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
-
       - name: Install dependencies
         run: npm install
-
       - name: Generate and Post
         run: npm start
         env:
