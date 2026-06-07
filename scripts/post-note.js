@@ -1,58 +1,76 @@
 // scripts/post-note.js
-// Note自動投稿スクリプト（Node.js / fetch + Cookie認証）
+// Note自動投稿スクリプト（Node.js / fetch直接呼び出し）
 
-import { readFileSync, writeFileSync } from 'fs';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 
-const NOTE_SESSION_ID = process.env.NOTE_SESSION_ID;
-const GEMINI_API_KEY  = process.env.GEMINI_API_KEY;
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// ── 記事選択 ─────────────────────────────────────────────
-function selectArticle() {
-  const articles = JSON.parse(readFileSync('content/articles.json', 'utf8'));
-
-  // 日付ベースのインデックス選択（既存generate-and-post.jsと同方式）
-  const dayIndex = Math.floor(Date.now() / 86400000) % articles.length;
-  return articles[dayIndex];
+// ── 記事選択（generate-and-post.jsと同方式）────────────────────────────────
+function loadArticle() {
+  const articlesPath = join(__dirname, '../content/articles.json');
+  const articles = JSON.parse(readFileSync(articlesPath, 'utf-8'));
+  if (!Array.isArray(articles) || articles.length === 0) {
+    throw new Error('articles.json is empty or not an array.');
+  }
+  const today = new Date();
+  const index = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / 86400000) % articles.length;
+  return articles[index];
 }
 
-// ── Geminiでnote用記事生成 ────────────────────────────────
+// ── Gemini（fetch直接呼び出し）────────────────────────────────────────────
 async function generateNoteArticle(article) {
-  const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite-preview-06-17' });
+  const apiKey = process.env.GEMINI_API_KEY;
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`;
 
   const prompt = `
 あなたはビジネス系メディアの編集者です。以下の情報を元にnote記事を作成してください。
 
 【タイトル】${article.title}
 【本文】${article.body}
-【URL】${article.url}
+【URL】${article.url ?? ''}
 
-【出力形式】
+【出力ルール】
 - 文字数：1200〜1500文字
-- 構成：見出し3つ（## 見出し）
-- 語調：です/ます調
+- 見出し3つ（## 見出し）
+- です/ます調
 - 末尾にCTA（「詳しくはこちら」＋URL）を自然に挿入
-- ハッシュタグ3個を末尾に追加（例：#資金調達 #中小企業 #融資）
-
-【制約】
-- 宣伝色を出さず、読者の課題解決に寄り添う文体
-- 具体的な数字・事例を含める
-- 出力は記事本文のみ（説明不要）
+- 末尾にハッシュタグ3個（例：#資金調達 #中小企業 #融資）
+- 宣伝色を出さず読者の課題解決に寄り添う文体
+- 出力は記事本文のみ（説明・コードブロック不要）
 `;
 
-  const result = await model.generateContent(prompt);
-  return result.response.text().trim();
+  const res = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.7 },
+    }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Gemini API error ${res.status}: ${errText}`);
+  }
+
+  const data = await res.json();
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+  if (!text) throw new Error('Gemini returned empty content.');
+  return text.trim();
 }
 
-// ── Note投稿 ──────────────────────────────────────────────
+// ── Note投稿 ──────────────────────────────────────────────────────────────
 async function postToNote(title, body) {
+  const sessionId = process.env.NOTE_SESSION_ID;
+
   // Step1: 下書き作成
   const createRes = await fetch('https://note.com/api/v2/text_notes', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Cookie': `_note_session_id=${NOTE_SESSION_ID}`,
+      'Cookie': `_note_session_id=${sessionId}`,
       'User-Agent': 'Mozilla/5.0 (compatible; NexcessBot/1.0)',
       'Referer': 'https://note.com',
     },
@@ -61,7 +79,7 @@ async function postToNote(title, body) {
         name: title,
         body: body,
         status: 'draft',
-      }
+      },
     }),
   });
 
@@ -72,14 +90,14 @@ async function postToNote(title, body) {
 
   const createData = await createRes.json();
   const noteKey = createData.data?.key;
-  if (!noteKey) throw new Error('note keyが取得できませんでした');
+  if (!noteKey) throw new Error(`note keyが取得できませんでした: ${JSON.stringify(createData)}`);
 
   // Step2: 公開
   const publishRes = await fetch(`https://note.com/api/v2/text_notes/${noteKey}/publish`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      'Cookie': `_note_session_id=${NOTE_SESSION_ID}`,
+      'Cookie': `_note_session_id=${sessionId}`,
       'User-Agent': 'Mozilla/5.0 (compatible; NexcessBot/1.0)',
       'Referer': 'https://note.com',
     },
@@ -95,19 +113,24 @@ async function postToNote(title, body) {
   return publishData.data?.note_url ?? `https://note.com/nexccess/n/${noteKey}`;
 }
 
-// ── メイン ────────────────────────────────────────────────
-async function main() {
-  if (!NOTE_SESSION_ID) throw new Error('NOTE_SESSION_ID が未設定です');
-  if (!GEMINI_API_KEY)  throw new Error('GEMINI_API_KEY が未設定です');
+// ── Main ──────────────────────────────────────────────────────────────────
+(async () => {
+  try {
+    console.log('📰 Loading article...');
+    const article = loadArticle();
+    console.log(`   Title: ${article.title}`);
 
-  const article = selectArticle();
-  console.log(`📝 選択記事: ${article.title}`);
+    console.log('🤖 Generating note article with gemini-2.5-flash-lite...');
+    const noteBody = await generateNoteArticle(article);
+    console.log(`   生成文字数: ${noteBody.length}文字`);
 
-  const noteBody = await generateNoteArticle(article);
-  console.log(`✍️  生成完了: ${noteBody.length}文字`);
+    console.log('📝 Posting to Note...');
+    const url = await postToNote(article.title, noteBody);
+    console.log(`✅ Note投稿成功: ${url}`);
 
-  const url = await postToNote(article.title, noteBody);
-  console.log(`✅ Note投稿成功: ${url}`);
-}
-
-main().catch(e => { console.error('❌', e.message); process.exit(1); });
+    console.log('🎉 Completed.');
+  } catch (err) {
+    console.error('❌ Fatal error:', err.message);
+    process.exit(1);
+  }
+})();
