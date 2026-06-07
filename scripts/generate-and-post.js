@@ -118,6 +118,12 @@ async function postToX(text) {
 
     await postToX(posts.twitter);
 
+    try {
+      await postToFacebook(posts.facebook, article);
+    } catch (fbErr) {
+      console.error("⚠️ Facebook post failed (non-fatal):", fbErr.message);
+    }
+
     console.log("🎉 All posts completed.");
   } catch (err) {
     console.error("❌ Fatal error:", err);
