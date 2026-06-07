@@ -1,43 +1,32 @@
-name: Gemini SNS Pipeline
-
-on:
-  schedule:
-    - cron: '15 23 * * *'  # 毎日 8:15 JST
-  workflow_dispatch:
-
-jobs:
-  generate-and-post:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Generate and Post
-        run: node scripts/generate-and-post.js
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          X_APP_KEY: ${{ secrets.X_APP_KEY }}
-          X_APP_SECRET: ${{ secrets.X_APP_SECRET }}
-          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
-          X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
-          GH_PAT: ${{ secrets.GH_PAT }}
-          GH_REPO: ${{ secrets.GH_REPO }}
-
-      - name: Commit updated articles.json
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add content/articles.json
-          git diff --staged --quiet || git commit -m "chore: update article status [skip ci]"
-          git push
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+[
+  {
+    "title": "30秒で融資通過率がわかる無料診断",
+    "body": "政策金融公庫への融資、通過できるか不安ですか？生成AIを使った審査スコアリングで、今すぐ通過率を診断できます。相談料・成果報酬は一切なし。まず診断から始めてください。",
+    "url": "https://www.seisakukinyukouko.site/",
+    "status": "pending"
+  },
+  {
+    "title": "審査落ちの経営者に共通する3つの習慣",
+    "body": "財務数値だけでなく経営者の「姿勢」が重要。季節変動・在庫管理の説明力が合否を分ける。支援実績100社超の事例から見た共通点を無料診断で確認できます。",
+    "url": "https://www.seisakukinyukouko.site/",
+    "status": "pending"
+  },
+  {
+    "title": "成果報酬なしで融資相談できるコンサルとは",
+    "body": "「相談したら費用が発生する」は誤解です。Nexcessは相談料・成果報酬ゼロ。生成AIの審査診断ツールで現状を把握してから、無料相談へ。リスクゼロで始められます。",
+    "url": "https://www.seisakukinyukouko.site/",
+    "status": "pending"
+  },
+  {
+    "title": "政策金融公庫の審査、AIで事前チェックできます",
+    "body": "融資申請前にAIで審査シミュレーション。スコアリングで弱点を把握し、通過率を上げてから申請できます。支援実績100社超のNexcessが無料で診断します。",
+    "url": "https://www.seisakukinyukouko.site/",
+    "status": "pending"
+  },
+  {
+    "title": "美容・飲食・服飾業の融資は季節変動の説明が鍵",
+    "body": "生活関連サービス業の融資審査では、季節変動と在庫管理の説明力が合否を左右します。業種別の審査ポイントをAI診断で確認。無料・成果報酬なしで相談できます。",
+    "url": "https://www.seisakukinyukouko.site/",
+    "status": "pending"
+  }
+]
