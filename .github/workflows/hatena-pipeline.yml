@@ -1,0 +1,32 @@
+name: Hatena Pipeline
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * *"   # 毎日 09:00 JST
+
+jobs:
+  post:
+    name: Generate and Post to Hatena
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js v24
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Post to Hatena
+        run: node scripts/post-hatena.js
+        env:
+          GEMINI_API_KEY:  ${{ secrets.GEMINI_API_KEY }}
+          HATENA_ID:       ${{ secrets.HATENA_ID }}
+          HATENA_BLOG:     ${{ secrets.HATENA_BLOG }}
+          HATENA_API_KEY:  ${{ secrets.HATENA_API_KEY }}
