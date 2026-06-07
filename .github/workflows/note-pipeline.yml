@@ -1,0 +1,30 @@
+name: Note Pipeline
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * *"   # 毎日 12:00 JST
+
+jobs:
+  post:
+    name: Generate and Post to Note
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js v22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Post to Note
+        run: node scripts/post-note.js
+        env:
+          GEMINI_API_KEY:    ${{ secrets.GEMINI_API_KEY }}
+          NOTE_SESSION_ID:   ${{ secrets.NOTE_SESSION_ID }}
