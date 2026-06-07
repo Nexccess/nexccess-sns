@@ -1,0 +1,31 @@
+name: GitHub Pages Pipeline
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 2 * * *"   # 毎日 JST 11:00
+
+jobs:
+  post:
+    name: Generate and Post to GitHub Pages
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js v24
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Post to GitHub Pages
+        run: node scripts/post-github-pages.js
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GH_PAT:         ${{ secrets.GH_PAT }}
+          GH_REPO:        ${{ secrets.GH_REPO }}
