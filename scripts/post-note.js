@@ -19,7 +19,7 @@ function selectArticle() {
 // ── Geminiでnote用記事生成 ────────────────────────────────
 async function generateNoteArticle(article) {
   const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite-preview-06-17' });
 
   const prompt = `
 あなたはビジネス系メディアの編集者です。以下の情報を元にnote記事を作成してください。
