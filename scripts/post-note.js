@@ -44,5 +44,5 @@ async function postToNote(title, body) {
   }
 
   const publishData = await publishRes.json();
-  return publishData.data?.note_url ?? `https://note.com/nexccess/n/${noteKey}`;
+  return publishData.data?.note_url ?? `https://note.com/nex_naka/n/${noteKey}`;
 }
