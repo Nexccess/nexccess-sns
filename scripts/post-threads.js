@@ -32,7 +32,7 @@ async function generateThreadsPost(article) {
 【URL】${article.url ?? ''}
 
 【出力ルール】
-- 文字数：400〜500文字
+- 文字数：350〜450文字（厳守。500文字を超えると投稿が失敗します）
 - 改行を適切に使い読みやすくする
 - ハッシュタグ3個を末尾に追加
 - 末尾にURLを記載
@@ -120,8 +120,16 @@ async function postToThreads(text) {
     const postText = await generateThreadsPost(article);
     console.log(`   生成文字数: ${postText.length}文字`);
 
+    // Threads API上限（500文字）超過時の強制トリミング
+    const trimmedText = postText.length > 490
+      ? postText.slice(0, 487) + '...'
+      : postText;
+    if (postText.length > 490) {
+      console.log(`⚠️  文字数超過のためトリミング: ${trimmedText.length}文字`);
+    }
+
     console.log('📝 Posting to Threads...');
-    const postId = await postToThreads(postText);
+    const postId = await postToThreads(trimmedText);
     console.log(`✅ Threads投稿成功: post_id=${postId}`);
 
     console.log('🎉 Completed.');
