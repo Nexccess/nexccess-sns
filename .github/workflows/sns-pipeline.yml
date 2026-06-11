@@ -11,7 +11,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Setup Node.js v22
+      - name: Setup Node.js v24
         uses: actions/setup-node@v4
         with:
           node-version: "24"
@@ -28,3 +28,8 @@ jobs:
           X_APP_SECRET: ${{ secrets.X_APP_SECRET }}
           X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
           X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
+          HATENA_ID: ${{ secrets.HATENA_ID }}
+          HATENA_BLOG: ${{ secrets.HATENA_BLOG }}
+          HATENA_API_KEY: ${{ secrets.HATENA_API_KEY }}
+          THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
