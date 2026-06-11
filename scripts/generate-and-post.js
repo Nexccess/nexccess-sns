@@ -46,7 +46,7 @@ async function generatePosts(theme) {
     contents: [{ role: "user", parts: [{ text: userPrompt }] }],
     generationConfig: {
       temperature: 0.85,
-      maxOutputTokens: 2048,
+      maxOutputTokens: 8192,
       responseMimeType: "application/json",
     },
   };
