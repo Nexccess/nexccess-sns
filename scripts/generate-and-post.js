@@ -28,8 +28,8 @@ const rwClient = twitterClient.readWrite;
 // ── Gemini API（フォールバック付き）───────────────────────────────────────
 const GEMINI_MODELS = [
   "gemini-2.5-flash-lite",
-  "gemini-1.5-flash",
-  "gemini-1.5-flash-8b",
+  "gemini-2.5-flash",
+  "gemini-1.5-flash-latest",
 ];
 const GEMINI_API_BASE =
   "https://generativelanguage.googleapis.com/v1beta/models";
@@ -47,7 +47,6 @@ async function generatePosts(theme) {
     generationConfig: {
       temperature: 0.85,
       maxOutputTokens: 8192,
-      responseMimeType: "application/json",
     },
   };
 
@@ -76,9 +75,9 @@ async function generatePosts(theme) {
       }
 
       const cleaned = raw
-        .replace(/^```json\s*/i, "")
-        .replace(/^```\s*/i, "")
-        .replace(/```\s*$/i, "")
+        .replace(/^\s*```json\s*/i, "")
+        .replace(/^\s*```\s*/i, "")
+        .replace(/\s*```\s*$/i, "")
         .trim();
 
       const parsed = JSON.parse(cleaned);
