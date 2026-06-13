@@ -26,10 +26,8 @@ export async function postToHatena(title, body, url) {
 
   const endpoint = `https://blog.hatena.ne.jp/${hatenaId}/${hatenaBlog}/atom/entry`;
 
-  // 選定テーマのURLを動的に結合（固定ドメイン廃止）
   const finalBody = `${body}\n\n---\n\n【今回のテーマに関する詳細・AI診断はこちら】\n-> [公式ページへ直結](${url})`;
 
-  // text/x-markdown 指定で改行・段落・リンク記法をブログ上に正しく反映
   const entry = `<?xml version="1.0" encoding="utf-8"?>
 <entry xmlns="http://www.w3.org/2005/Atom"
        xmlns:app="http://www.w3.org/2007/app">
@@ -58,7 +56,7 @@ export async function postToHatena(title, body, url) {
 
   const xml = await res.text();
   const match = xml.match(/<link[^>]+rel="alternate"[^>]+href="([^"]+)"/);
-  const url = match?.[1] ?? `https://${hatenaBlog}/`;
-  console.log(`✅ はてなブログ投稿成功 (Markdown): ${url}`);
-  return url;
+  const postedUrl = match?.[1] ?? `https://${hatenaBlog}/`;
+  console.log(`✅ はてなブログ投稿成功 (Markdown): ${postedUrl}`);
+  return postedUrl;
 }
