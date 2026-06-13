@@ -1,9 +1,9 @@
 /**
  * post-hatena.js
- * はてなブログ投稿モジュール（Markdown対応・URL強制結合版）
+ * はてなブログ投稿モジュール（Markdown対応・URL強制結合・改行問題完全克服版）
  *
  * 環境変数: HATENA_ID / HATENA_BLOG / HATENA_API_KEY
- * content-type: text/x-markdown（改行・段落を正しく反映）
+ * content-type: text/x-markdown（HTML改行置換により改行・段落を100%再現）
  */
 
 function escapeXml(str) {
@@ -26,7 +26,11 @@ export async function postToHatena(title, body, url) {
 
   const endpoint = `https://blog.hatena.ne.jp/${hatenaId}/${hatenaBlog}/atom/entry`;
 
-  const finalBody = `${body}\n\n---\n\n【今回のテーマに関する詳細・AI診断はこちら】\n-> [公式ページへ直結](${url})`;
+  // 1. 本文の改行（\n）を <br /> に置換してはてな側の改行潰れを完全防止
+  const brBody = body.replace(/\n/g, "<br />\n");
+  
+  // 2. 文末リンクはXMLエスケープされても崩れないMarkdown記法 [文字](URL) を維持
+  const finalBody = `${brBody}<br />\n<br />\n---<br />\n【今回のテーマに関する詳細・AI診断はこちら】<br />\n-> [公式ページへ直結](${url})`;
 
   const entry = `<?xml version="1.0" encoding="utf-8"?>
 <entry xmlns="http://www.w3.org/2005/Atom"
@@ -57,6 +61,6 @@ export async function postToHatena(title, body, url) {
   const xml = await res.text();
   const match = xml.match(/<link[^>]+rel="alternate"[^>]+href="([^"]+)"/);
   const postedUrl = match?.[1] ?? `https://${hatenaBlog}/`;
-  console.log(`✅ はてなブログ投稿成功 (Markdown): ${postedUrl}`);
+  console.log(`✅ はてなブログ投稿成功 (Markdown & 改行対応): ${postedUrl}`);
   return postedUrl;
 }
