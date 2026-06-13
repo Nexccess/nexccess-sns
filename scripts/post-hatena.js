@@ -15,7 +15,7 @@ function escapeXml(str) {
     .replace(/'/g, "&apos;");
 }
 
-export async function postToHatena(title, body) {
+export async function postToHatena(title, body, url) {
   const hatenaId   = process.env.HATENA_ID;
   const hatenaBlog = process.env.HATENA_BLOG;
   const apiKey     = process.env.HATENA_API_KEY;
@@ -26,8 +26,8 @@ export async function postToHatena(title, body) {
 
   const endpoint = `https://blog.hatena.ne.jp/${hatenaId}/${hatenaBlog}/atom/entry`;
 
-  // 本文末尾に導線をMarkdown形式で強制結合
-  const finalBody = `${body}\n\n---\n\n【経営の一次整理・Path-Flow診断はこちら】\n➔ [keiei.pathflow.org](https://keiei.pathflow.org)`;
+  // 選定テーマのURLを動的に結合（固定ドメイン廃止）
+  const finalBody = `${body}\n\n---\n\n【今回のテーマに関する詳細・AI診断はこちら】\n-> [公式ページへ直結](${url})`;
 
   // text/x-markdown 指定で改行・段落・リンク記法をブログ上に正しく反映
   const entry = `<?xml version="1.0" encoding="utf-8"?>
