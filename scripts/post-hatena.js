@@ -1,11 +1,9 @@
 /**
  * post-hatena.js
- * はてなブログ投稿モジュール（ESM / AtomPub API）
+ * はてなブログ投稿モジュール（Markdown対応・URL強制結合版）
  *
- * 既存踏襲:
- * - 環境変数: HATENA_ID / HATENA_BLOG / HATENA_API_KEY
- * - Basic認証
- * - content type: text/plain
+ * 環境変数: HATENA_ID / HATENA_BLOG / HATENA_API_KEY
+ * content-type: text/x-markdown（改行・段落を正しく反映）
  */
 
 function escapeXml(str) {
@@ -28,11 +26,15 @@ export async function postToHatena(title, body) {
 
   const endpoint = `https://blog.hatena.ne.jp/${hatenaId}/${hatenaBlog}/atom/entry`;
 
+  // 本文末尾に導線をMarkdown形式で強制結合
+  const finalBody = `${body}\n\n---\n\n【経営の一次整理・Path-Flow診断はこちら】\n➔ [keiei.pathflow.org](https://keiei.pathflow.org)`;
+
+  // text/x-markdown 指定で改行・段落・リンク記法をブログ上に正しく反映
   const entry = `<?xml version="1.0" encoding="utf-8"?>
 <entry xmlns="http://www.w3.org/2005/Atom"
        xmlns:app="http://www.w3.org/2007/app">
   <title>${escapeXml(title)}</title>
-  <content type="text/plain">${escapeXml(body)}</content>
+  <content type="text/x-markdown">${escapeXml(finalBody)}</content>
   <app:control>
     <app:draft>no</app:draft>
   </app:control>
@@ -57,6 +59,6 @@ export async function postToHatena(title, body) {
   const xml = await res.text();
   const match = xml.match(/<link[^>]+rel="alternate"[^>]+href="([^"]+)"/);
   const url = match?.[1] ?? `https://${hatenaBlog}/`;
-  console.log(`✅ はてなブログ投稿成功: ${url}`);
+  console.log(`✅ はてなブログ投稿成功 (Markdown): ${url}`);
   return url;
 }
