@@ -126,7 +126,7 @@ async function postToX(text) {
         postToX(posts.twitter),
         postToFacebook(posts.facebook, theme.url),
         postToHatena(posts.hatena_title, posts.hatena_body, theme.url),
-        postToThreads(posts.threads, theme.url),
+        postToThreads(posts.threads, theme.url), // ⚠️ ここは「theme.url」を渡すべき配管です
       ]);
 
     // 4. 結果サマリ
