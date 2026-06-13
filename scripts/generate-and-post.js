@@ -125,7 +125,7 @@ async function postToX(text) {
         postToX(posts.twitter),
         postToFacebook(posts.facebook, theme.url),
         postToHatena(posts.hatena_title, posts.hatena_body),
-        postToThreads(posts.threads),
+        postToThreads(posts.threads, theme.url),
       ]);
 
     // 4. 結果サマリ
