@@ -1,14 +1,12 @@
 /**
  * post-threads.js
- * Threads投稿モジュール（ESM / Threads Graph API v1.0）
+ * Threads投稿モジュール（URL強制結合・500文字制限対応版）
  *
- * 既存踏襲:
- * - 環境変数: THREADS_USER_ID / THREADS_ACCESS_TOKEN
- * - 2ステップ方式（コンテナ作成 → 公開）
- * - 500文字上限トリミング
+ * 環境変数: THREADS_USER_ID / THREADS_ACCESS_TOKEN
+ * 2ステップ方式（コンテナ作成 → 公開）
  */
 
-export async function postToThreads(text) {
+export async function postToThreads(text, url) {
   const userId      = process.env.THREADS_USER_ID;
   const accessToken = process.env.THREADS_ACCESS_TOKEN;
 
@@ -16,13 +14,13 @@ export async function postToThreads(text) {
     throw new Error("THREADS_USER_ID または THREADS_ACCESS_TOKEN が設定されていません");
   }
 
-  // 500文字上限トリミング（既存ロジック踏襲）
-  const trimmedText = text.length > 490
-    ? text.slice(0, 487) + "..."
+  // URL強制結合（URLが削られないよう本文側を安全にトリミング）
+  const suffix = `\n\n▼ 詳細はこちら\n${url}`;
+  const maxBodyLength = 490 - suffix.length;
+  const trimmedText = text.length > maxBodyLength
+    ? text.slice(0, maxBodyLength - 3) + "..."
     : text;
-  if (text.length > 490) {
-    console.warn(`⚠️  Threads文字数超過のためトリミング: ${trimmedText.length}文字`);
-  }
+  const finalText = `${trimmedText}${suffix}`;
 
   // Step1: コンテナ作成
   const createRes = await fetch(
@@ -32,7 +30,7 @@ export async function postToThreads(text) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         media_type: "TEXT",
-        text: trimmedText,
+        text: finalText,
         access_token: accessToken,
       }),
     }
@@ -43,11 +41,8 @@ export async function postToThreads(text) {
     throw new Error(`Threadsコンテナ作成失敗 [${createRes.status}]: ${err}`);
   }
 
-  const createData = await createRes.json();
-  const containerId = createData.id;
-  if (!containerId) {
-    throw new Error(`container_idが取得できませんでした: ${JSON.stringify(createData)}`);
-  }
+  const { id: containerId } = await createRes.json();
+  if (!containerId) throw new Error("container_idが取得できませんでした");
 
   // Step2: 公開
   const publishRes = await fetch(
