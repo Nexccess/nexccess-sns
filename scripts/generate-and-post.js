@@ -51,6 +51,7 @@ async function generatePosts(theme) {
   };
 
   for (const model of GEMINI_MODELS) {
+    // 🌟 重複を排除し、1回のみ正しく宣言します
     const url = `${GEMINI_API_BASE}/${model}:generateContent?key=${apiKey}`;
     console.log(`🤖 Gemini モデル試行: ${model}`);
 
@@ -60,6 +61,7 @@ async function generatePosts(theme) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
       });
+//（以下略、既存の正常なコードを維持）
 
       if (!res.ok) {
         const errText = await res.text();
