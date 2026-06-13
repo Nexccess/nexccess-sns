@@ -123,7 +123,7 @@ async function postToX(text) {
       await Promise.allSettled([
         postToX(posts.twitter),
         postToFacebook(posts.facebook, theme.url),
-        postToHatena(posts.hatena_title, posts.hatena_body),
+        postToHatena(posts.hatena_title, posts.hatena_body, theme.url),
         postToThreads(posts.threads, theme.url),
       ]);
 
