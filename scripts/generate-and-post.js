@@ -30,7 +30,7 @@ const GEMINI_MODELS = [
   "gemini-2.5-flash",
   "gemini-1.5-flash-latest",
 ];
-// 🌟 【修正】パースエラー回避のため改行を完全に排除し、1行でプレーンに定義
+// 🌟 改行を完全に排除し、1行でプレーンに定義することでパースエラーを解消
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 
 async function generatePosts(theme) {
@@ -116,37 +116,25 @@ async function postToX(text) {
     console.log(`   はてな    : ${posts.hatena_title}`);
     console.log(`   Threads   : ${posts.threads?.slice(0, 40)}...`);
 
-    // 3. 各媒体の配信仕様に合わせて短縮URL（goUrl）を結合
-    // X (Twitter): 100文字前後の本文の末尾に、スペースを空けてX専用短縮URLを結合
-    const xContent = `${posts.twitter} 詳しくはこちら：${theme.goUrl.x}`;
-
-    // Facebook: 本文末尾に2改行を挟んで媒体用短縮URLを結合
-    const fbContent = `${posts.facebook}\n\n詳しくはこちら：${theme.goUrl.facebook}`;
-
-    // はてなブログ: 本文末尾に導線テキストと媒体用短縮URLを結合
-    const hatenaContent = `${posts.hatena_body}\n\n■詳細はこちら\n${theme.goUrl.hatena}`;
-
-    // Threads: 本文末尾に2改行を挟んで媒体用短縮URLを結合
-    const threadsContent = `${posts.threads}\n\n${theme.goUrl.threads}`;
-
-    // 4. 4媒体へ並列投稿
+    // 3. 4媒体へ並列投稿
     console.log("\n📡 投稿開始...");
+    // 🌟 ご提示いただいた正しい引数の配管をそのまま適用
     const [xResult, fbResult, hatenaResult, threadsResult] =
       await Promise.allSettled([
-        postToX(xContent),
-        postToFacebook(fbContent, theme.goUrl.facebook),
-        postToHatena(posts.hatena_title, hatenaContent, theme.goUrl.hatena),
-        postToThreads(threadsContent, theme.goUrl.threads),
+        postToX(posts.twitter.replace(theme.url, theme.goUrl.x)),
+        postToFacebook(posts.facebook, theme.goUrl.facebook),
+        postToHatena(posts.hatena_title, posts.hatena_body, theme.goUrl.hatena),
+        postToThreads(posts.threads, theme.goUrl.threads),
       ]);
 
-    // 5. 結果サマリ
+    // 4. 結果サマリ
     console.log("\n=== 投稿結果 ===");
     console.log(`X           : ${xResult.status === "fulfilled" ? "✅ 成功" : `❌ 失敗 - ${xResult.reason?.message}`}`);
     console.log(`Facebook    : ${fbResult.status === "fulfilled" ? "✅ 成功" : `❌ 失敗 - ${fbResult.reason?.message}`}`);
     console.log(`はてなブログ: ${hatenaResult.status === "fulfilled" ? "✅ 成功" : `❌ 失敗 - ${hatenaResult.reason?.message}`}`);
     console.log(`Threads     : ${threadsResult.status === "fulfilled" ? "✅ 成功" : `❌ 失敗 - ${threadsResult.reason?.message}`}`);
 
-    // 6. 全媒体失敗時のみ異常終了
+    // 5. 全媒体失敗時のみ異常終了
     const allFailed = [xResult, fbResult, hatenaResult, threadsResult].every(
       (r) => r.status === "rejected"
     );
