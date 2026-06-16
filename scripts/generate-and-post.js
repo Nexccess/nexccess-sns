@@ -4,10 +4,9 @@
  *
  * 技術仕様:
  * - ESM (import/export)
- * - twitter-api-v2 ライブラリ使用（既存踏襲）
+ * - twitter-api-v2 ライブラリ使用
  * - Gemini: fetch直接呼び出し、v1beta endpoint
- * - モデルフォールバック: gemini-2.5-flash-lite → gemini-1.5-flash → gemini-1.5-flash-8b
- * - articles.json 依存を完全廃止、4テーマ動的生成に移行
+ * - モデルフォールバック: gemini-2.5-flash-lite → gemini-2.5-flash → gemini-1.5-flash-latest
  */
 
 import { TwitterApi } from "twitter-api-v2";
@@ -31,8 +30,7 @@ const GEMINI_MODELS = [
   "gemini-2.5-flash",
   "gemini-1.5-flash-latest",
 ];
-const GEMINI_API_BASE =
-  "https://generativelanguage.googleapis.com/v1beta/models";
+const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 
 async function generatePosts(theme) {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -118,6 +116,7 @@ async function postToX(text) {
     console.log(`   Threads   : ${posts.threads?.slice(0, 40)}...`);
 
     // 3. 4媒体へ並列投稿
+    // ※ 外部結合をすべて廃止し、本来の関数に「本文」と「各媒体専用の短縮URL」をシンプルに直列で流し込みます
     console.log("\n📡 投稿開始...");
     const [xResult, fbResult, hatenaResult, threadsResult] =
       await Promise.allSettled([
