@@ -30,8 +30,8 @@ const GEMINI_MODELS = [
   "gemini-2.5-flash",
   "gemini-1.5-flash-latest",
 ];
-const GEMINI_API_BASE =
-  "[https://generativelanguage.googleapis.com/v1beta/models](https://generativelanguage.googleapis.com/v1beta/models)";
+// 🌟 【修正】パースエラー回避のため改行を完全に排除し、1行でプレーンに定義
+const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 
 async function generatePosts(theme) {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -73,7 +73,6 @@ async function generatePosts(theme) {
         continue;
       }
 
-      // 🌟 【修正箇所】正規表現の構文エラーを解消
       const cleaned = raw
         .replace(/^\s*```json\s*/i, "")
         .replace(/^\s*```\s*/i, "")
@@ -107,7 +106,7 @@ async function postToX(text) {
     // 1. テーマ選定
     const theme = selectTheme();
     console.log(`\n📌 選定テーマ: ${theme.name}`);
-    console.log(`   URL: ${theme.url}`);
+    console.log(`   ベースURL: ${theme.url}`);
 
     // 2. Gemini で全媒体分を一括生成
     console.log("\n🤖 コンテンツ生成中...");
@@ -117,24 +116,37 @@ async function postToX(text) {
     console.log(`   はてな    : ${posts.hatena_title}`);
     console.log(`   Threads   : ${posts.threads?.slice(0, 40)}...`);
 
-    // 3. 4媒体へ並列投稿
+    // 3. 各媒体の配信仕様に合わせて短縮URL（goUrl）を結合
+    // X (Twitter): 100文字前後の本文の末尾に、スペースを空けてX専用短縮URLを結合
+    const xContent = `${posts.twitter} 詳しくはこちら：${theme.goUrl.x}`;
+
+    // Facebook: 本文末尾に2改行を挟んで媒体用短縮URLを結合
+    const fbContent = `${posts.facebook}\n\n詳しくはこちら：${theme.goUrl.facebook}`;
+
+    // はてなブログ: 本文末尾に導線テキストと媒体用短縮URLを結合
+    const hatenaContent = `${posts.hatena_body}\n\n■詳細はこちら\n${theme.goUrl.hatena}`;
+
+    // Threads: 本文末尾に2改行を挟んで媒体用短縮URLを結合
+    const threadsContent = `${posts.threads}\n\n${theme.goUrl.threads}`;
+
+    // 4. 4媒体へ並列投稿
     console.log("\n📡 投稿開始...");
     const [xResult, fbResult, hatenaResult, threadsResult] =
       await Promise.allSettled([
-        postToX(posts.twitter),
-        postToFacebook(posts.facebook, theme.url),
-        postToHatena(posts.hatena_title, posts.hatena_body, theme.url),
-        postToThreads(posts.threads, theme.url),
+        postToX(xContent),
+        postToFacebook(fbContent, theme.goUrl.facebook),
+        postToHatena(posts.hatena_title, hatenaContent, theme.goUrl.hatena),
+        postToThreads(threadsContent, theme.goUrl.threads),
       ]);
 
-    // 4. 結果サマリ
+    // 5. 結果サマリ
     console.log("\n=== 投稿結果 ===");
     console.log(`X           : ${xResult.status === "fulfilled" ? "✅ 成功" : `❌ 失敗 - ${xResult.reason?.message}`}`);
     console.log(`Facebook    : ${fbResult.status === "fulfilled" ? "✅ 成功" : `❌ 失敗 - ${fbResult.reason?.message}`}`);
     console.log(`はてなブログ: ${hatenaResult.status === "fulfilled" ? "✅ 成功" : `❌ 失敗 - ${hatenaResult.reason?.message}`}`);
     console.log(`Threads     : ${threadsResult.status === "fulfilled" ? "✅ 成功" : `❌ 失敗 - ${threadsResult.reason?.message}`}`);
 
-    // 5. 全媒体失敗時のみ異常終了
+    // 6. 全媒体失敗時のみ異常終了
     const allFailed = [xResult, fbResult, hatenaResult, threadsResult].every(
       (r) => r.status === "rejected"
     );
