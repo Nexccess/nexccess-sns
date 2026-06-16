@@ -4,9 +4,10 @@
  *
  * 技術仕様:
  * - ESM (import/export)
- * - twitter-api-v2 ライブラリ使用
+ * - twitter-api-v2 ライブラリ使用（既存踏襲）
  * - Gemini: fetch直接呼び出し、v1beta endpoint
- * - モデルフォールバック: gemini-2.5-flash-lite → gemini-2.5-flash → gemini-1.5-flash-latest
+ * - モデルフォールバック: gemini-2.5-flash-lite → gemini-1.5-flash → gemini-1.5-flash-8b
+ * - articles.json 依存を完全廃止、4テーマ動的生成に移行
  */
 
 import { TwitterApi } from "twitter-api-v2";
@@ -30,8 +31,8 @@ const GEMINI_MODELS = [
   "gemini-2.5-flash",
   "gemini-1.5-flash-latest",
 ];
-// 🌟 改行を完全に排除し、1行でプレーンに定義することでパースエラーを解消
-const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
+const GEMINI_API_BASE =
+  "https://generativelanguage.googleapis.com/v1beta/models";
 
 async function generatePosts(theme) {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -106,7 +107,7 @@ async function postToX(text) {
     // 1. テーマ選定
     const theme = selectTheme();
     console.log(`\n📌 選定テーマ: ${theme.name}`);
-    console.log(`   ベースURL: ${theme.url}`);
+    console.log(`   URL: ${theme.url}`);
 
     // 2. Gemini で全媒体分を一括生成
     console.log("\n🤖 コンテンツ生成中...");
@@ -118,10 +119,9 @@ async function postToX(text) {
 
     // 3. 4媒体へ並列投稿
     console.log("\n📡 投稿開始...");
-    // 🌟 ご提示いただいた正しい引数の配管をそのまま適用
     const [xResult, fbResult, hatenaResult, threadsResult] =
       await Promise.allSettled([
-        postToX(posts.twitter.replace(theme.url, theme.goUrl.x)),
+        postToX(`${posts.twitter} ${theme.goUrl.x}`),
         postToFacebook(posts.facebook, theme.goUrl.facebook),
         postToHatena(posts.hatena_title, posts.hatena_body, theme.goUrl.hatena),
         postToThreads(posts.threads, theme.goUrl.threads),
