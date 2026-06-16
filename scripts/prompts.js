@@ -8,72 +8,72 @@
  */
 
 // -------------------------------------------------------
-// 5つのLPテーマ定義（短縮URL・トラッキング用 goUrl を追加）
+// 5つのLPテーマ定義（短縮URL・トラッキング用 goUrl を完全正常化）
 // -------------------------------------------------------
 export const LP_THEMES = [
   {
     id: 'pathflow_keiei',
     name: 'Path-Flow（総合経営相談・一次整理）',
-    url: 'https://keiei.pathflow.org',
+    url: '[https://keiei.pathflow.org](https://keiei.pathflow.org)',
     coreValue: '経営の「モヤモヤ」の言語化、AIによる経営診断、失敗を仕組みに変える一次整理',
     painPoint: 'どこに相談していいか分からないが現状に強烈な違和感がある。現状を打破したい経営者',
     goUrl: {
-      facebook: 'https://pathflow.org/go/fb-keiei',
-      x:        'https://pathflow.org/go/x-keiei',
-      threads:  'https://pathflow.org/go/th-keiei',
-      hatena:   'https://pathflow.org/go/ht-keiei',
+      facebook: '[https://pathflow.org/go/fb-keiei](https://pathflow.org/go/fb-keiei)',
+      x:        '[https://pathflow.org/go/x-keiei](https://pathflow.org/go/x-keiei)',
+      threads:  '[https://pathflow.org/go/th-keiei](https://pathflow.org/go/th-keiei)',
+      hatena:   '[https://pathflow.org/go/ht-keiei](https://pathflow.org/go/ht-keiei)',
     },
   },
   {
     id: 'pathflow_main',
     name: 'Path-Flow（経営可視化・AIナビゲーション）',
-    url: 'https://main.pathflow.org/',
+    url: '[https://main.pathflow.org/](https://main.pathflow.org/)',
     coreValue: '経営データの集約、AIによる次の一手の可視化、社長の現場依存からの脱却',
     painPoint: '社長が現場を離れると売上が落ちる。社員に任せたいのに任せられない',
     goUrl: {
-      facebook: 'https://pathflow.org/go/fb-main',
-      x:        'https://pathflow.org/go/x-main',
-      threads:  'https://pathflow.org/go/th-main',
-      hatena:   'https://pathflow.org/go/ht-main',
+      facebook: '[https://pathflow.org/go/fb-main](https://pathflow.org/go/fb-main)',
+      x:        '[https://pathflow.org/go/x-main](https://pathflow.org/go/x-main)',
+      threads:  '[https://pathflow.org/go/th-main](https://pathflow.org/go/th-main)',
+      hatena:   '[https://pathflow.org/go/ht-main](https://pathflow.org/go/ht-main)',
     },
   },
   {
     id: 'pathflow_shigyo',
     name: '士業向けPath-Flow',
-    url: 'https://shigyo.pathflow.org/',
+    url: '[https://shigyo.pathflow.org/](https://shigyo.pathflow.org/)',
     coreValue: '士業事務所の顧問先開拓・紹介導線のAI自動化、提案精度の向上',
     painPoint: '紹介頼みの限界、新規開拓に費やす時間と労力のロス',
     goUrl: {
-      facebook: 'https://pathflow.org/go/fb-shigyo',
-      x:        'https://pathflow.org/go/x-shigyo',
-      threads:  'https://pathflow.org/go/th-shigyo',
-      hatena:   'https://pathflow.org/go/ht-shigyo',
+      facebook: '[https://pathflow.org/go/fb-shigyo](https://pathflow.org/go/fb-shigyo)',
+      x:        '[https://pathflow.org/go/x-shigyo](https://pathflow.org/go/x-shigyo)',
+      threads:  '[https://pathflow.org/go/th-shigyo](https://pathflow.org/go/th-shigyo)',
+      hatena:   '[https://pathflow.org/go/ht-shigyo](https://pathflow.org/go/ht-shigyo)',
     },
   },
   {
     id: 'seisakukinyukouko',
     name: '政策金融公庫（融資審査・無料診断）',
-    url: 'https://www.seisakukinyukouko.site/index.html',
+    url: '[https://www.seisakukinyukouko.site/index.html](https://www.seisakukinyukouko.site/index.html)',
     coreValue: 'AIシミュレーションによる融資通過率の可視化、事業計画のブラッシュアップ',
     painPoint: '融資を受けたいが準備が分からない。事業計画書の書き方が分からない。審査が不安',
     goUrl: {
-      facebook: 'https://pathflow.org/go/fb-koukou',
-      x:        'https://pathflow.org/go/x-koukou',
-      threads:  'https://pathflow.org/go/th-koukou',
-      hatena:   'https://pathflow.org/go/ht-koukou',
+      facebook: '[https://pathflow.org/go/fb-koukou](https://pathflow.org/go/fb-koukou)',
+      x:        '[https://pathflow.org/go/x-koukou](https://pathflow.org/go/x-koukou)',
+      threads:  '[https://pathflow.org/go/th-koukou](https://pathflow.org/go/th-koukou)',
+      hatena:   '[https://pathflow.org/go/ht-koukou](https://pathflow.org/go/ht-koukou)',
     },
   },
   {
     id: 'souzoku',
     name: '相続関連サービス',
-    url: 'https://souzoku.pathflow.org/',
+    url: '[https://souzoku.pathflow.org/](https://souzoku.pathflow.org/)',
     coreValue: '事業承継・相続問題のAI診断、家族と会社を守るための早期対策',
     painPoint: '相続対策を先送りにしている。何から始めればいいか分からない',
     goUrl: {
-      facebook: 'https://pathflow.org/go/fb-souzoku',
-      x:        'https://pathflow.org/go/x-souzoku',
-      threads:  'https://pathflow.org/go/th-souzoku',
-      hatena:   'https://pathflow.org/go/ht-souzoku',
+      facebook: '[https://pathflow.org/go/fb-souzoku](https://pathflow.org/go/fb-souzoku)',
+      x:        '[https://pathflow.org/go/x-souzoku](https://pathflow.org/go/x-souzoku)',
+      threads:  '[https://pathflow.org/go/th-souzoku](https://pathflow.org/go/th-souzoku)',
+      hatena:   '[https://pathflow.org/go/ht-souzoku](https://pathflow.org/go/ht-souzoku)',
     },
   },
 ];
@@ -99,7 +99,7 @@ export function buildSystemPrompt() {
 中小企業経営者から実際によく寄せられる相談をもとに、SNSやブログ向けの相談コラムを執筆してください。
 
 目的は、読者を煽ることではありません。
-知識をひけらかすことでもありません。
+知識をひけらかすこと部署でもありません。
 
 読者が、
 
@@ -158,7 +158,7 @@ export function buildSystemPrompt() {
 
 例：
 「〜です」
-「〜ます」
+「〜ます'」
 「〜かもしれません」
 「〜という相談は少なくありません」
 「まずは整理してみることが大切です」
@@ -338,7 +338,7 @@ export function buildUserPrompt(theme) {
 読者が、
 
 「この人は中小企業の現場を分かっている」
-「難しい話を分かりやすく説明してくれる」
+/「難しい話を分かりやすく説明してくれる」
 「売り込まれている感じが少ない」
 
 と感じる内容にしてください。
