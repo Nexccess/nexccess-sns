@@ -30,11 +30,11 @@ const GEMINI_MODELS = [
   "gemini-2.5-flash",
   "gemini-1.5-flash-latest",
 ];
-const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
+const GEMINI_API_BASE = "https://generativelanguage.googleapis.com";
 
 async function generatePosts(theme) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error("GEMINI_API_KEY が設定されていません");
+  const apiKey = process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.trim() : "";
+  if (!apiKey) throw new Error("GEMINI_API_KEY が設定されていないか、空欄です");
 
   const systemPrompt = buildSystemPrompt();
   const userPrompt = buildUserPrompt(theme);
@@ -49,11 +49,15 @@ async function generatePosts(theme) {
   };
 
   for (const model of GEMINI_MODELS) {
-    const url = `${GEMINI_API_BASE}/${model}:generateContent?key=${apiKey}`;
+    // ⚠️ パースエラー対策: URLオブジェクトを使用して、文字列結合バグを完全に排除します
+    const targetPath = `/v1beta/models/${model}:generateContent`;
+    const targetUrl = new URL(targetPath, GEMINI_API_BASE);
+    targetUrl.searchParams.set("key", apiKey);
+
     console.log(`🤖 Gemini モデル試行: ${model}`);
 
     try {
-      const res = await fetch(url, {
+      const res = await fetch(targetUrl.toString(), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
@@ -116,7 +120,6 @@ async function postToX(text) {
     console.log(`   Threads   : ${posts.threads?.slice(0, 40)}...`);
 
     // 3. 4媒体へ並列投稿
-    // ※ 外部結合をすべて廃止し、本来の関数に「本文」と「各媒体専用の短縮URL」をシンプルに直列で流し込みます
     console.log("\n📡 投稿開始...");
     const [xResult, fbResult, hatenaResult, threadsResult] =
       await Promise.allSettled([
