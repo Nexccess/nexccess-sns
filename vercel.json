@@ -4,30 +4,26 @@
     { "source": "/api/(.*)", "destination": "/api/index.js" }
   ],
   "redirects": [
-    { "source": "/go/fb-keiei", "destination": "https://keiei.pathflow.org", "permanent": false },
-    { "source": "/go/x-keiei", "destination": "https://keiei.pathflow.org", "permanent": false },
-    { "source": "/go/th-keiei", "destination": "https://keiei.pathflow.org", "permanent": false },
-    { "source": "/go/ht-keiei", "destination": "https://keiei.pathflow.org", "permanent": false },
-
-    { "source": "/go/fb-main", "destination": "https://main.pathflow.org/", "permanent": false },
-    { "source": "/go/x-main", "destination": "https://main.pathflow.org/", "permanent": false },
-    { "source": "/go/th-main", "destination": "https://main.pathflow.org/", "permanent": false },
-    { "source": "/go/ht-main", "destination": "https://main.pathflow.org/", "permanent": false },
-
-    { "source": "/go/fb-shigyo", "destination": "https://shigyo.pathflow.org/", "permanent": false },
-    { "source": "/go/x-shigyo", "destination": "https://shigyo.pathflow.org/", "permanent": false },
-    { "source": "/go/th-shigyo", "destination": "https://shigyo.pathflow.org/", "permanent": false },
-    { "source": "/go/ht-shigyo", "destination": "https://shigyo.pathflow.org/", "permanent": false },
-
-    { "source": "/go/fb-koukou", "destination": "https://www.seisakukinyukouko.site/index.html", "permanent": false },
-    { "source": "/go/x-koukou", "destination": "https://www.seisakukinyukouko.site/index.html", "permanent": false },
-    { "source": "/go/th-koukou", "destination": "https://www.seisakukinyukouko.site/index.html", "permanent": false },
-    { "source": "/go/ht-koukou", "destination": "https://www.seisakukinyukouko.site/index.html", "permanent": false },
-
-    { "source": "/go/fb-souzoku", "destination": "https://souzoku.pathflow.org/", "permanent": false },
-    { "source": "/go/x-souzoku", "destination": "https://souzoku.pathflow.org/", "permanent": false },
-    { "source": "/go/th-souzoku", "destination": "https://souzoku.pathflow.org/", "permanent": false },
-    { "source": "/go/ht-souzoku", "destination": "https://souzoku.pathflow.org/", "permanent": false }
+    { "source": "/go/fb-keiei",   "destination": "https://keiei.pathflow.org/?utm_source=facebook&utm_medium=social&utm_campaign=keiei", "permanent": false },
+    { "source": "/go/x-keiei",    "destination": "https://keiei.pathflow.org/?utm_source=x&utm_medium=social&utm_campaign=keiei", "permanent": false },
+    { "source": "/go/th-keiei",   "destination": "https://keiei.pathflow.org/?utm_source=threads&utm_medium=social&utm_campaign=keiei", "permanent": false },
+    { "source": "/go/ht-keiei",   "destination": "https://keiei.pathflow.org/?utm_source=hatena&utm_medium=social&utm_campaign=keiei", "permanent": false },
+    { "source": "/go/fb-main",    "destination": "https://main.pathflow.org/?utm_source=facebook&utm_medium=social&utm_campaign=main", "permanent": false },
+    { "source": "/go/x-main",     "destination": "https://main.pathflow.org/?utm_source=x&utm_medium=social&utm_campaign=main", "permanent": false },
+    { "source": "/go/th-main",    "destination": "https://main.pathflow.org/?utm_source=threads&utm_medium=social&utm_campaign=main", "permanent": false },
+    { "source": "/go/ht-main",    "destination": "https://main.pathflow.org/?utm_source=hatena&utm_medium=social&utm_campaign=main", "permanent": false },
+    { "source": "/go/fb-shigyo",  "destination": "https://shigyo.pathflow.org/?utm_source=facebook&utm_medium=social&utm_campaign=shigyo", "permanent": false },
+    { "source": "/go/x-shigyo",   "destination": "https://shigyo.pathflow.org/?utm_source=x&utm_medium=social&utm_campaign=shigyo", "permanent": false },
+    { "source": "/go/th-shigyo",  "destination": "https://shigyo.pathflow.org/?utm_source=threads&utm_medium=social&utm_campaign=shigyo", "permanent": false },
+    { "source": "/go/ht-shigyo",  "destination": "https://shigyo.pathflow.org/?utm_source=hatena&utm_medium=social&utm_campaign=shigyo", "permanent": false },
+    { "source": "/go/fb-koukou",  "destination": "https://www.seisakukinyukouko.site/index.html?utm_source=facebook&utm_medium=social&utm_campaign=koukou", "permanent": false },
+    { "source": "/go/x-koukou",   "destination": "https://www.seisakukinyukouko.site/index.html?utm_source=x&utm_medium=social&utm_campaign=koukou", "permanent": false },
+    { "source": "/go/th-koukou",  "destination": "https://www.seisakukinyukouko.site/index.html?utm_source=threads&utm_medium=social&utm_campaign=koukou", "permanent": false },
+    { "source": "/go/ht-koukou",  "destination": "https://www.seisakukinyukouko.site/index.html?utm_source=hatena&utm_medium=social&utm_campaign=koukou", "permanent": false },
+    { "source": "/go/fb-souzoku", "destination": "https://souzoku.pathflow.org/?utm_source=facebook&utm_medium=social&utm_campaign=souzoku", "permanent": false },
+    { "source": "/go/x-souzoku",  "destination": "https://souzoku.pathflow.org/?utm_source=x&utm_medium=social&utm_campaign=souzoku", "permanent": false },
+    { "source": "/go/th-souzoku", "destination": "https://souzoku.pathflow.org/?utm_source=threads&utm_medium=social&utm_campaign=souzoku", "permanent": false },
+    { "source": "/go/ht-souzoku", "destination": "https://souzoku.pathflow.org/?utm_source=hatena&utm_medium=social&utm_campaign=souzoku", "permanent": false }
   ],
   "env": {
     "NODE_ENV": "production"
