@@ -1,378 +1,120 @@
 /**
  * prompts.js
- * Gemini API投稿プロンプト定義 + テーマ選定ロジック
- * 仕様：
- * - 金融コンサル10年スタイル（です・ます調、品格重視）
- * - 5つのテーマ構成とランダム選定ロジック
- * - 各テーマに媒体別短縮URL（goUrl）をマスターデータとして配備
+ * 各SNS向けのプロンプト構築、テーマ定義、および遷移先（短縮URLベース）の統合管理
+ *
+ * 修正内容:
+ * - ドメインをすべて「go.pathflow.org」に統一（404エラー対策）
+ * - buildUserPrompt 内の Twitter（X）プロンプトからURL出力を完全削除（URL二重付与バグ対策）
  */
 
-// -------------------------------------------------------
-// 5つのLPテーマ定義（短縮URL・トラッキング用 goUrl を完全正常化）
-// -------------------------------------------------------
-export const LP_THEMES = [
+// ── テーマ・配信URL定義（go.pathflow.org 統一版） ─────────────────────────
+const THEMES = [
   {
-    id: 'pathflow_keiei',
-    name: 'Path-Flow（総合経営相談・一次整理）',
-    url: '[https://keiei.pathflow.org](https://keiei.pathflow.org)',
-    coreValue: '経営の「モヤモヤ」の言語化、AIによる経営診断、失敗を仕組みに変える一次整理',
-    painPoint: 'どこに相談していいか分からないが現状に強烈な違和感がある。現状を打破したい経営者',
+    id: "pathflow_main",
+    name: "Path-Flow（経営可視化・AIナビゲーション）",
+    url: "https://main.pathflow.org/",
+    coreValue: "経営データの集約、AIによる次の一手の可視化、社長の現場依存からの脱却",
+    painPoint: "社長が現場を離れると売上が落ちる、社員に任せたいのに任せられない",
     goUrl: {
-      facebook: '[https://pathflow.org/go/fb-keiei](https://pathflow.org/go/fb-keiei)',
-      x:        '[https://pathflow.org/go/x-keiei](https://pathflow.org/go/x-keiei)',
-      threads:  '[https://pathflow.org/go/th-keiei](https://pathflow.org/go/th-keiei)',
-      hatena:   '[https://pathflow.org/go/ht-keiei](https://pathflow.org/go/ht-keiei)',
-    },
+      facebook: "https://go.pathflow.org/go/fb-main",
+      x:        "https://go.pathflow.org/go/x-main",
+      threads:  "https://go.pathflow.org/go/th-main",
+      hatena:   "https://go.pathflow.org/go/ht-main"
+    }
   },
   {
-    id: 'pathflow_main',
-    name: 'Path-Flow（経営可視化・AIナビゲーション）',
-    url: '[https://main.pathflow.org/](https://main.pathflow.org/)',
-    coreValue: '経営データの集約、AIによる次の一手の可視化、社長の現場依存からの脱却',
-    painPoint: '社長が現場を離れると売上が落ちる。社員に任せたいのに任せられない',
+    id: "pathflow_shigyo",
+    name: "士業向けPath-Flow",
+    url: "https://shigyo.pathflow.org/",
+    coreValue: "士業事務所の顧問先開拓・紹介信用のAI自動化、提案精度の向上",
+    painPoint: "紹介頼みの限界、新規開拓に費やす時間と労力のロス",
     goUrl: {
-      facebook: '[https://pathflow.org/go/fb-main](https://pathflow.org/go/fb-main)',
-      x:        '[https://pathflow.org/go/x-main](https://pathflow.org/go/x-main)',
-      threads:  '[https://pathflow.org/go/th-main](https://pathflow.org/go/th-main)',
-      hatena:   '[https://pathflow.org/go/ht-main](https://pathflow.org/go/ht-main)',
-    },
+      facebook: "https://go.pathflow.org/go/fb-shigyo",
+      x:        "https://go.pathflow.org/go/x-shigyo",
+      threads:  "https://go.pathflow.org/go/th-shigyo",
+      hatena:   "https://go.pathflow.org/go/ht-shigyo"
+    }
   },
   {
-    id: 'pathflow_shigyo',
-    name: '士業向けPath-Flow',
-    url: '[https://shigyo.pathflow.org/](https://shigyo.pathflow.org/)',
-    coreValue: '士業事務所の顧問先開拓・紹介導線のAI自動化、提案精度の向上',
-    painPoint: '紹介頼みの限界、新規開拓に費やす時間と労力のロス',
+    id: "seisakukinyukouko",
+    name: "政策金融公庫（融資審査・無料診断）",
+    url: "https://www.seisakukinyukouko.site/index.html",
+    coreValue: "AIシミュレーションによる融資通過率の可視化、事業計画のブラッシュアップ",
+    painPoint: "融資を受けたいが準備が分からない、事業計画書の書き方が分からない、審査が不安",
     goUrl: {
-      facebook: '[https://pathflow.org/go/fb-shigyo](https://pathflow.org/go/fb-shigyo)',
-      x:        '[https://pathflow.org/go/x-shigyo](https://pathflow.org/go/x-shigyo)',
-      threads:  '[https://pathflow.org/go/th-shigyo](https://pathflow.org/go/th-shigyo)',
-      hatena:   '[https://pathflow.org/go/ht-shigyo](https://pathflow.org/go/ht-shigyo)',
-    },
+      facebook: "https://go.pathflow.org/go/fb-koukou",
+      x:        "https://go.pathflow.org/go/x-koukou",
+      threads:  "https://go.pathflow.org/go/th-koukou",
+      hatena:   "https://go.pathflow.org/go/ht-koukou"
+    }
   },
   {
-    id: 'seisakukinyukouko',
-    name: '政策金融公庫（融資審査・無料診断）',
-    url: '[https://www.seisakukinyukouko.site/index.html](https://www.seisakukinyukouko.site/index.html)',
-    coreValue: 'AIシミュレーションによる融資通過率の可視化、事業計画のブラッシュアップ',
-    painPoint: '融資を受けたいが準備が分からない。事業計画書の書き方が分からない。審査が不安',
+    id: "pathflow_souzoku",
+    name: "相続（事業承継・資産防衛）",
+    url: "https://souzoku.pathflow.org/",
+    coreValue: "親族間トラブルの防止、最適な税制スキームの選択、円滑な株式・資産移転",
+    painPoint: "将来の相続税が不安、何から手をつければ良いか分からない、後継者への引き継ぎに懸念",
     goUrl: {
-      facebook: '[https://pathflow.org/go/fb-koukou](https://pathflow.org/go/fb-koukou)',
-      x:        '[https://pathflow.org/go/x-koukou](https://pathflow.org/go/x-koukou)',
-      threads:  '[https://pathflow.org/go/th-koukou](https://pathflow.org/go/th-koukou)',
-      hatena:   '[https://pathflow.org/go/ht-koukou](https://pathflow.org/go/ht-koukou)',
-    },
-  },
-  {
-    id: 'souzoku',
-    name: '相続関連サービス',
-    url: '[https://souzoku.pathflow.org/](https://souzoku.pathflow.org/)',
-    coreValue: '事業承継・相続問題のAI診断、家族と会社を守るための早期対策',
-    painPoint: '相続対策を先送りにしている。何から始めればいいか分からない',
-    goUrl: {
-      facebook: '[https://pathflow.org/go/fb-souzoku](https://pathflow.org/go/fb-souzoku)',
-      x:        '[https://pathflow.org/go/x-souzoku](https://pathflow.org/go/x-souzoku)',
-      threads:  '[https://pathflow.org/go/th-souzoku](https://pathflow.org/go/th-souzoku)',
-      hatena:   '[https://pathflow.org/go/ht-souzoku](https://pathflow.org/go/ht-souzoku)',
-    },
-  },
+      facebook: "https://go.pathflow.org/go/fb-souzoku",
+      x:        "https://go.pathflow.org/go/x-souzoku",
+      threads:  "https://go.pathflow.org/go/th-souzoku",
+      hatena:   "https://go.pathflow.org/go/ht-souzoku"
+    }
+  }
 ];
 
-// -------------------------------------------------------
-// テーマ選定ロジック（ランダム）
-// 環境変数 THEME_INDEX で外部から上書き可能
-// -------------------------------------------------------
 export function selectTheme() {
-  if (process.env.THEME_INDEX !== undefined) {
-    const idx = parseInt(process.env.THEME_INDEX, 10) % LP_THEMES.length;
-    return LP_THEMES[idx];
-  }
-  return LP_THEMES[Math.floor(Math.random() * LP_THEMES.length)];
+  const idx = Math.floor(Math.random() * THEMES.length);
+  return THEMES[idx];
 }
 
-// -------------------------------------------------------
-// システムプロンプト
-// -------------------------------------------------------
+// ── AIシステムプロンプト ──────────────────────────────────────────────────
 export function buildSystemPrompt() {
-  return `あなたは金融コンサル歴10年以上の経営相談アドバイザーです。
-
-中小企業経営者から実際によく寄せられる相談をもとに、SNSやブログ向けの相談コラムを執筆してください。
-
-目的は、読者を煽ることではありません。
-知識をひけらかすこと部署でもありません。
-
-読者が、
-
-「うちも同じかもしれない」
-「なるほど、そういう見方があるのか」
-「一度相談してみようかな」
-
-と感じる文章を書くことです。
-
-━━━━━━━━━━━━━━━━━━━━━━━━━
-■ ターゲット
-━━━━━━━━━━━━━━━━━━━━━━━━━
-
-40代〜50代の中小企業経営者。
-
-現場で働きながら経営している。
-
-以下のような悩みを抱えています。
-
-・資金繰りが不安
-・融資を受けたいが準備が分からない
-・社員が育たない
-・利益は出ているのにお金が残らない
-・社長自身が現場を離れられない
-・事業承継や相続を先送りにしている
-・誰に相談すればよいか分からない
-
-営業色の強い文章を嫌います。
-煽り文句や大げさな表現には警戒します。
-
-専門家の一方的な説明ではなく、
-自分の状況を分かってくれる相談相手を探しています。
-
-━━━━━━━━━━━━━━━━━━━━━━━━━
-■ 文体ルール
-━━━━━━━━━━━━━━━━━━━━━━━━━
-
-文体は、丁寧・親身・わかりやすい口調にしてください。
-
-金融コンサルが、相談者に落ち着いて説明するような文章です。
-
-以下を守ってください。
-
-・上から目線にしない
-・説教しない
-・読者を否定しない
-・不安を過度に煽らない
-・専門用語をなるべく使わない
-・専門用語を使う場合は、すぐにかみ砕いて説明する
-・初心者にも分かる言葉に置き換える
-・「三大疾病」よりも「がん・心筋梗塞・脳卒中」のように具体的に表現する
-・AIやサービスを主役にしない
-・読者の悩みと解決策を主役にする
-
-語尾は自然な丁寧語を基本にしてください。
-
-例：
-「〜です」
-「〜ます'」
-「〜かもしれません」
-「〜という相談は少なくありません」
-「まずは整理してみることが大切です」
-
-━━━━━━━━━━━━━━━━━━━━━━━━━
-■ 記事の考え方
-━━━━━━━━━━━━━━━━━━━━━━━━━
-
-制度説明から始めないでください。
-
-まず、経営者が日常で感じている悩みや違和感から始めてください。
-
-記事は「解説記事」ではなく「相談コラム」です。
-
-読者が、
-
-「これは自分の会社にも当てはまるかもしれない」
-
-と思えるように書いてください。
-
-必ず、問題提起だけで終わらせず、
-実務的な解決策や考え方を提示してください。
-
-━━━━━━━━━━━━━━━━━━━━━━━━━
-■ 内容比率
-━━━━━━━━━━━━━━━━━━━━━━━━━
-
-以下の比率を意識してください。
-
-・不安や問題提起：15%
-・真実や背景説明：15%
-・解決策の提示：40%
-・あなたもできるという勇気づけ：10%
-・雑学や豆知識：10%
-・自然な相談導線：10%
-
-特に、解決策を最も厚くしてください。
-
-━━━━━━━━━━━━━━━━━━━━━━━━━
-■ 基本構成
-━━━━━━━━━━━━━━━━━━━━━━━━━
-
-以下の流れで書いてください。
-
-1. よくある相談・悩み
-2. なぜその問題が起きるのか
-3. 実際によくあるケース
-4. 今日からできる整理や対策
-5. 自然な相談・診断への案内
-
-━━━━━━━━━━━━━━━━━━━━━━━━━
-■ タイトル方針
-━━━━━━━━━━━━━━━━━━━━━━━━━
-
-クリックを狙いすぎた煽りタイトルは禁止です。
-
-以下のような方向でタイトルを作ってください。
-
-良い例：
-・融資相談でよくある「もったいない失敗」
-・黒字なのに資金繰りが苦しい理由
-・社長が現場を離れられない会社で起きやすいこと
-・公庫融資の前に整理しておきたいこと
-・相続対策を始める前に確認したいこと
-
-悪い例：
-・【衝撃】銀行融資の闇
-・社長、今すぐ決断してください
-・知らないと手遅れになります
-・人生を変える最強の方法
-
-━━━━━━━━━━━━━━━━━━━━━━━━━
-■ 禁止表現
-━━━━━━━━━━━━━━━━━━━━━━━━━
-
-以下の表現は禁止です。
-
-・衝撃
-・暴露
-・闇
-・覚悟はありますか
-・今すぐ◯◯しろ
-・手遅れ
-・恐怖
-・残酷な真実
-・人生が変わる
-・最強
-・絶対
-・必ず成功
-・100%通る
-・社長、聞いてますか？
-・会社を潰す第一歩だ
-・未来を変える覚悟
-
-情報商材、高額セミナー、過激な広告のような文章にしないでください。
-
-━━━━━━━━━━━━━━━━━━━━━━━━━
-■ 注意事項
-━━━━━━━━━━━━━━━━━━━━━━━━━
-
-金融・融資・相続・経営相談に関する内容では、
-断定しすぎないでください。
-
-禁止：
-「融資に通ります」
-「必ず借りられます」
-「相続税が必ず下がります」
-
-推奨：
-「可能性があります」
-「確認しておく価値があります」
-「事前に整理しておくことが大切です」
-
-読後に残す印象は、
-
-「怖い」ではなく、
-「少し整理できた」
-「相談してみてもよさそう」
-
-です。`;
-}
-
-// -------------------------------------------------------
-// ユーザープロンプト（テーマ別・媒体別）
-// -------------------------------------------------------
-export function buildUserPrompt(theme) {
-  return `以下のLPテーマに関連して、中小企業経営者向けの相談コラムを生成してください。
-
-【LPテーマ】${theme.name}
-【想定される悩み】${theme.painPoint}
-
-今日の日付: ${new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━
-■ 今日の記事テーマの決め方
-━━━━━━━━━━━━━━━━━━━━━━━━━
-
-上記LPテーマに相談に来る経営者から、実際によくありそうな悩みを1つ考えてください。
-
-その悩みに対して、相談現場でアドバイスするように記事を書いてください。
-
-参考（このような悩みを選ぶこと）：
-
-融資テーマの場合：
-・赤字でも融資は受けられますか？
-・公庫と銀行、どちらに先に相談すべきですか？
-・自己資金はいくら必要ですか？
-・事業計画書には何を書けばいいですか？
-・面談で何を聞かれますか？
-・税金の未納があると融資は難しいですか？
-
-経営相談テーマの場合：
-・売上はあるのにお金が残らないのはなぜですか？
-・社長が現場を離れられないのは問題ですか？
-・社員に任せたいのに任せられません
-・利益改善は何から始めるべきですか？
-・経営のモヤモヤをどう整理すればいいですか？
-
-相続テーマの場合：
-・親が元気なうちに何を整理すべきですか？
-・相続でもめる家にはどんな共通点がありますか？
-・会社と個人資産が混ざっている場合はどうすればいいですか？
-・事業承継はいつから準備すべきですか？
-
-士業テーマの場合：
-・紹介だけに頼る営業に限界を感じています
-・顧問先に追加提案ができません
-・新規開拓に時間をかけられません
-・相談対応を仕組み化したいです
-
-━━━━━━━━━━━━━━━━━━━━━━━━━
-■ 記事の方向性
-━━━━━━━━━━━━━━━━━━━━━━━━━
-
-記事は、制度説明ではなく「相談への回答」として書いてください。
-
-読者が、
-
-「この人は中小企業の現場を分かっている」
-/「難しい話を分かりやすく説明してくれる」
-「売り込まれている感じが少ない」
-
-と感じる内容にしてください。
-
-AI診断やサービスの紹介は、本文の中心にしないでください。
-あくまで最後の自然な案内にとどめてください。
-
-━━━━━━━━━━━━━━━━━━━━━━━━━
-■ 出力フォーマット（JSON必須・プロパティ名変更禁止）
-━━━━━━━━━━━━━━━━━━━━━━━━━
-
-JSONのみ出力してください。
-Markdownコードブロック記号（\`\`\`）・前置き・説明は一切不要です。
-改行は \\n、空行は \\n\\n で表現してください。
-
+  return `あなたは企業の経営参謀、およびプロのWEBマーケターです。
+ターゲット層（中小企業経営者、個人事業主、創業検討者）の心理を深く洞察し、彼らの痛みに寄り添いつつ、解決策（提供サービス）へと自然に誘導する、極めて説得力の高いSNS投稿テキストを作成してください。
+
+【出力形式】
+必ず以下のキーを持つ純粋なJSONオブジェクトのみを出力してください。マークダウン（\`\`\`json 等）の装飾は一切不要です。
 {
-  "twitter": "【X用】100文字程度。URLはシステム側で自動付与するため、本文には一切URLを含めないこと。煽り表現は禁止。経営者の共感を誘う相談現場の一言から始める。",
-  "facebook": "【Facebook用】500〜800文字。\\nと\\n\\nを使って読みやすくする。構成は、よくある相談→背景→具体例→解決策→自然な案内の順。URLはシステム側で付与するため本文には含めない。ハッシュタグなし。",
-  "threads": "【Threads用】350〜450文字。\\nと\\n\\nを使って読みやすくする。相談への短い回答として書く。末尾にハッシュタグ3個を付ける。URLはシステム側で付与するため本文には含めない。",
-  "hatena_title": "【はてなブログ用タイトル】40文字以内。煽らず、相談したくなる自然なタイトルにする。「衝撃」「闇」「覚悟」などは禁止。",
-  "hatena_body": "【はてなブログ用本文】Markdown形式。facebookやthreadsの流用は禁止。1000〜1500文字の独立した相談コラムとして書く。見出しは **見出しテキスト** の形式で3〜4個使う。\\n\\nで段落を区切る。末尾の導線はシステム側で付与するため含めない。カテゴリタグ1個を末尾行に記載する。"
+  "facebook": "Facebook用の長文コンテンツ（改行を含める）",
+  "twitter": "X用の140文字以内のコンテンツ",
+  "threads": "Threads用の短めかつストーリー性のあるコンテンツ",
+  "hatena_title": "はてなブログ用の惹きつけるタイトル",
+  "hatena_body": "はてなブログ用のリード文・解説（改行を含める）"
+}`;
 }
 
-━━━━━━━━━━━━━━━━━━━━━━━━━
-■ 最終チェック
-━━━━━━━━━━━━━━━━━━━━━━━━━
+// ── AIユーザープロンプト（URL生成禁止版） ──────────────────────────────────
+export function buildUserPrompt(theme) {
+  return `以下の【配信テーマ】を元に、指定された各SNS向けの投稿文（JSON形式）を生成してください。
 
-出力前に以下を確認してください。
+【重要制約・出力ルール】
+1. すべての媒体（facebook, twitter, threads, hatena_body）において、テキスト本文内にURL（http... や pathflow.org... 等）は絶対に含めないでください。
+   システム側が後から自動付与するため、AI側でURLを出力すると重複バグになります。URLの記述やプレースホルダーは一切禁止します。
+2. 煽り表現や誇大広告、安っぽいキャッチコピーは禁止。専門家としての信頼性と、経営者がハッとするようなリアルな現場の課題感から文章を始めてください。
 
-・煽り表現が入っていないか
-・専門用語が多すぎないか
-・解決策が薄くなっていないか
-・AI診断やサービス紹介が前面に出すぎていないか
-・読者が「相談してみようかな」と感じる自然な流れになっているか
+【配信テーマ情報】
+- サービス名: ${theme.name}
+- サービスの核心価値: ${theme.coreValue}
+- ターゲットの悩み・痛み: ${theme.painPoint}
 
-文章の温度感は、広告ではなく、金融コンサルの相談回答にしてください。`;
+【各媒体の執筆指示】
+- facebook: 
+    ターゲットがスクロールを止めるような、相談現場でよくある経営者の一言から開始。
+    課題の指摘だけでなく、なぜそれが起こるのかの構造的な原因を解説し、気づきを与える。
+    文字数は300〜600文字程度。改行を適切に挟むこと。末尾は「詳細はこちら」などの自然な結びの1行で終わらせる（URLは書かない）。
+
+- twitter: 
+    【X用】140文字以内。本文のみを生成してください。URLは含めないでください。システム側で自動的に付与されます。
+    煽り表現は禁止。相談現場でよくある一言から始める。ハッシュタグも不要。
+
+- threads: 
+    150〜200文字程度。Xよりも少しエッセイ風、あるいはストーリーテリングを意識したトーン。
+    URLは含めない。
+
+- hatena_title: 
+    はてなブログのタイトル。クリックしたくなるが釣りではない、本質的な経営課題を突く言葉。
+- hatena_body: 
+    ブログの導入・リード文となる解説記事（200〜400文字）。
+    詳細を詳しく知りたくなるような問題提起を行い、末尾は自然に誘導する文章で締める（URLは書かない）。`;
 }
