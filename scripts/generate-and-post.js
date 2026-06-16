@@ -4,10 +4,10 @@
  *
  * 技術仕様:
  * - ESM (import/export)
- * - twitter-api-v2 ライブラリ使用（既存踏襲）
+ * - twitter-api-v2 ライブラリ使用
  * - Gemini: fetch直接呼び出し、v1beta endpoint
- * - モデルフォールバック: gemini-2.5-flash-lite → gemini-1.5-flash → gemini-1.5-flash-8b
- * - articles.json 依存を完全廃止、4テーマ動的生成に移行
+ * - モデルフォールバック: gemini-2.5-flash-lite → gemini-2.5-flash → gemini-1.5-flash-latest
+ * - 各媒体の投稿に個別の短縮URL（theme.goUrl）を結合するよう安全に修正
  */
 
 import { TwitterApi } from "twitter-api-v2";
@@ -51,7 +51,6 @@ async function generatePosts(theme) {
   };
 
   for (const model of GEMINI_MODELS) {
-    // 🌟 重複を排除し、1回のみ正しく宣言します
     const url = `${GEMINI_API_BASE}/${model}:generateContent?key=${apiKey}`;
     console.log(`🤖 Gemini モデル試行: ${model}`);
 
@@ -61,7 +60,6 @@ async function generatePosts(theme) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
       });
-//（以下略、既存の正常なコードを維持）
 
       if (!res.ok) {
         const errText = await res.text();
@@ -78,7 +76,8 @@ async function generatePosts(theme) {
 
       const cleaned = raw
         .replace(/^\s*```json\s*/i, "")
-        .replace(/^\s*```\s*/i, "")
+        .replace(/^\s*
+```\s*/i, "")
         .replace(/\s*```\s*$/i, "")
         .trim();
 
@@ -109,7 +108,7 @@ async function postToX(text) {
     // 1. テーマ選定
     const theme = selectTheme();
     console.log(`\n📌 選定テーマ: ${theme.name}`);
-    console.log(`   URL: ${theme.url}`);
+    console.log(`   ベースURL: ${theme.url}`);
 
     // 2. Gemini で全媒体分を一括生成
     console.log("\n🤖 コンテンツ生成中...");
@@ -119,24 +118,37 @@ async function postToX(text) {
     console.log(`   はてな    : ${posts.hatena_title}`);
     console.log(`   Threads   : ${posts.threads?.slice(0, 40)}...`);
 
-    // 3. 4媒体へ並列投稿（allSettled で片方失敗でも継続）
+    // 3. 各媒体の配管を統一（確実な末尾結合方式へ変更して不確定な置換バグを排除）
+    // X (Twitter): 100文字前後の本文の末尾に、スペースを空けてX専用短縮URLを結合
+    const xContent = `${posts.twitter} 詳しくはこちら：${theme.goUrl.x}`;
+
+    // Facebook: 本文末尾に2改行を挟んで媒体用短縮URLを結合
+    const fbContent = `${posts.facebook}\n\n詳しくはこちら：${theme.goUrl.facebook}`;
+
+    // はてなブログ: 本文末尾に導線テキストと媒体用短縮URLを結合
+    const hatenaContent = `${posts.hatena_body}\n\n■詳細はこちら\n${theme.goUrl.hatena}`;
+
+    // Threads: 本文末尾に2改行を挟んで媒体用短縮URLを結合
+    const threadsContent = `${posts.threads}\n\n${theme.goUrl.threads}`;
+
+    // 4. 4媒体へ並列投稿
     console.log("\n📡 投稿開始...");
     const [xResult, fbResult, hatenaResult, threadsResult] =
       await Promise.allSettled([
-        postToX(posts.twitter),
-        postToFacebook(posts.facebook, theme.url),
-        postToHatena(posts.hatena_title, posts.hatena_body, theme.url),
-        postToThreads(posts.threads, theme.url), // ⚠️ ここは「theme.url」を渡すべき配管です
+        postToX(xContent),
+        postToFacebook(fbContent, theme.goUrl.facebook),
+        postToHatena(posts.hatena_title, hatenaContent, theme.goUrl.hatena),
+        postToThreads(threadsContent, theme.goUrl.threads),
       ]);
 
-    // 4. 結果サマリ
+    // 5. 結果サマリ
     console.log("\n=== 投稿結果 ===");
     console.log(`X           : ${xResult.status === "fulfilled" ? "✅ 成功" : `❌ 失敗 - ${xResult.reason?.message}`}`);
     console.log(`Facebook    : ${fbResult.status === "fulfilled" ? "✅ 成功" : `❌ 失敗 - ${fbResult.reason?.message}`}`);
     console.log(`はてなブログ: ${hatenaResult.status === "fulfilled" ? "✅ 成功" : `❌ 失敗 - ${hatenaResult.reason?.message}`}`);
     console.log(`Threads     : ${threadsResult.status === "fulfilled" ? "✅ 成功" : `❌ 失敗 - ${threadsResult.reason?.message}`}`);
 
-    // 5. 全媒体失敗時のみ異常終了
+    // 6. 全媒体失敗時のみ異常終了
     const allFailed = [xResult, fbResult, hatenaResult, threadsResult].every(
       (r) => r.status === "rejected"
     );
