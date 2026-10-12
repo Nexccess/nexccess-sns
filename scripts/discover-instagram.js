@@ -20,8 +20,8 @@ export function classifyResponse(status, body) {
 }
 
 export async function discover({ pageId=PAGE_ID, token=PAGE_TOKEN, version=GRAPH_VERSION, request=fetch }={}) {
-  if (!/^\\d+$/.test(pageId) || !token) return {status:"MISSING_FACEBOOK_PAGE_CREDENTIALS",instagram_user_id:null};
-  if (!/^v\\d+\\.\\d+$/.test(version)) return {status:"INVALID_GRAPH_VERSION",instagram_user_id:null};
+  if (!/^\d+$/.test(pageId) || !token) return {status:"MISSING_FACEBOOK_PAGE_CREDENTIALS",instagram_user_id:null};
+  if (!/^v\d+\.\d+$/.test(version)) return {status:"INVALID_GRAPH_VERSION",instagram_user_id:null};
   const url = new URL(`https://graph.facebook.com/${version}/${pageId}`);
   url.searchParams.set("fields", "instagram_business_account,connected_instagram_account");
   let response;
@@ -38,7 +38,7 @@ if (process.argv[1] && import.meta.url === new URL("file://" + path.resolve(proc
   const out={...result, checked_at_utc:new Date().toISOString(), mode:"READ_ONLY"};
   const folder=path.join(process.cwd(),"artifacts","12-ig");
   await fs.mkdir(folder,{recursive:true});
-  await fs.writeFile(path.join(folder,"account-discovery.json"),JSON.stringify(out,null,2)+"\\n","utf8");
+  await fs.writeFile(path.join(folder,"account-discovery.json"),JSON.stringify(out,null,2)+"\n","utf8");
   console.log(JSON.stringify({status:out.status,mode:out.mode,ig_id_present:!!out.instagram_user_id,error_code:out.error_code??null}));
   if (out.status!=="IG_ID_FOUND") process.exitCode=1;
 }
