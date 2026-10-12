@@ -1,0 +1,35 @@
+name: 12 Instagram Account Discovery (read only)
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/12-instagram-post-v01]
+    paths:
+      - 'scripts/discover-instagram.js'
+      - 'tests/discover-instagram.test.js'
+      - '.github/workflows/12-ig-account-check.yml'
+permissions:
+  contents: read
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Unit tests (no remote API)
+        run: node --test tests/discover-instagram.test.js
+      - name: Read-only account lookup
+        env:
+          META_PAGE_ID: ${{ secrets.META_PAGE_ID }}
+          META_PAGE_ACCESS_TOKEN: ${{ secrets.META_PAGE_ACCESS_TOKEN }}
+          META_GRAPH_VERSION: v24.0
+        run: node scripts/discover-instagram.js
+      - name: Save discovery evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: 12-ig-account-discovery
+          path: artifacts/12-ig/account-discovery.json
+          if-no-files-found: warn
