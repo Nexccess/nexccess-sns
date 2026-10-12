@@ -36,10 +36,16 @@ async function main() {
     if(!publish){output.execution_status="DRY_RUN_PASS";return;}
     if(process.env.APPROVED_POST!=="true")throw new Error("POST_NOT_APPROVED");
     if(!accountId||!token||!API_VERSION)throw new Error("MISSING_API_CONFIGURATION");
+    // Fail closed if previously published media cannot be read.
+    const recent=await graphRequest(`${accountId}/media`,{fields:"id,caption,permalink",limit:"50"},token);
+    if(!Array.isArray(recent.data))throw new Error("DUPLICATE_CHECK_UNAVAILABLE");
+    if(recent.data.some(item=>item.caption===caption))throw new Error("DUPLICATE_CAPTION_DETECTED");
+    output.duplicate_check="RECENT_50_CAPTIONS_CLEAR";
     const container=await graphRequest(`${accountId}/media`,{image_url:imageUrl,caption},token,"POST");
     if(!container.id)throw new Error("MEDIA_CONTAINER_ID_MISSING");
     // After a publish request, never issue an automatic second publish request.
     output.execution_status="PUBLISH_RESULT_UNKNOWN";
+    output.container_id=container.id;
     const published=await graphRequest(`${accountId}/media_publish`,{creation_id:container.id},token,"POST");
     if(!published.id)throw new Error("MEDIA_ID_MISSING");
     output.post_id=published.id;
