@@ -1,5 +1,10 @@
 name: 12 Instagram Post (manual only)
 on:
+  push:
+    branches: [feature/12-instagram-post-v01]
+    paths:
+      - 'scripts/post-instagram.js'
+      - '.github/workflows/12-instagram.yml'
   workflow_dispatch:
     inputs:
       caption:
@@ -26,13 +31,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - name: Syntax check
+        run: node --check scripts/post-instagram.js
       - name: Run Instagram worker
         env:
           META_GRAPH_VERSION: ${{ vars.META_GRAPH_VERSION }}
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           META_PAGE_ACCESS_TOKEN: ${{ secrets.META_PAGE_ACCESS_TOKEN }}
-          IG_CAPTION: ${{ inputs.caption }}
-          IG_IMAGE_URL: ${{ inputs.image_url }}
+          IG_CAPTION: ${{ inputs.caption || '12-IG-01 non-public test' }}
+          IG_IMAGE_URL: ${{ inputs.image_url || 'https://example.com/test.png' }}
           APPROVED_POST: ${{ inputs.publish && 'true' || 'false' }}
         run: node scripts/post-instagram.js ${{ inputs.publish && '--publish' || '--dry-run' }}
       - name: Retain execution evidence
