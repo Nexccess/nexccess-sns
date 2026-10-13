@@ -35,6 +35,9 @@ module.exports = async function handler(req, res) {
     if (req.method === 'POST' && url === '/api/articles') {
       return await handleAddArticle(req, res);
     }
+    if (req.method === 'GET' && url === '/api/instagram/account') {
+      return await handleInstagramAccount(req, res);
+    }
     if (req.method === 'GET' && url === '/api/status') {
       return await handleStatus(req, res);
     }
@@ -168,4 +171,45 @@ async function handleStatus(req, res) {
   }));
 
   return res.status(200).json({ ok: true, runs });
+}
+
+// ─────────────────────────────────────────────────
+// GET /api/instagram/account — Vercel credentials; READ ONLY
+// Protected by the same API_SECRET bearer authentication as other routes.
+// No token, raw Meta payload, or authorization headers are logged or returned.
+// ─────────────────────────────────────────────────
+async function handleInstagramAccount(req, res) {
+  res.setHeader('Cache-Control', 'no-store');
+  const pageId = process.env.META_PAGE_ID ?? '';
+  const token = process.env.META_PAGE_ACCESS_TOKEN ?? '';
+  if (!/^\d+$/.test(pageId) || !token) {
+    return res.status(503).json({ status: 'META_CREDENTIALS_MISSING', instagram_user_id: null });
+  }
+
+  try {
+    const endpoint = new URL(`https://graph.facebook.com/v24.0/${pageId}`);
+    endpoint.searchParams.set('fields', 'instagram_business_account,connected_instagram_account');
+    const response = await fetch(endpoint, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+      signal: AbortSignal.timeout(10000),
+    });
+    const body = await response.json();
+    if (!response.ok || body?.error) {
+      return res.status(200).json({
+        status: 'META_API_ERROR',
+        http_status: response.status,
+        error_code: body?.error?.code ?? null,
+        error_subcode: body?.error?.error_subcode ?? null,
+        instagram_user_id: null,
+      });
+    }
+    const id = body?.instagram_business_account?.id ?? body?.connected_instagram_account?.id;
+    if (!id) {
+      return res.status(200).json({ status: 'IG_NOT_LINKED_OR_NOT_VISIBLE', instagram_user_id: null });
+    }
+    return res.status(200).json({ status: 'IG_ID_FOUND', instagram_user_id: String(id) });
+  } catch {
+    return res.status(502).json({ status: 'META_NETWORK_OR_RESPONSE_ERROR', instagram_user_id: null });
+  }
 }
