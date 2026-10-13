@@ -35,6 +35,35 @@ jobs:
             exit 1
           fi
           echo "PAGE_ID_MATCH"
+      - name: Inspect Meta token permissions (read only, redacted)
+        env:
+          META_PAGE_ACCESS_TOKEN: ${{ secrets.META_PAGE_ACCESS_TOKEN }}
+          META_GRAPH_VERSION: v24.0
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          const token = process.env.META_PAGE_ACCESS_TOKEN || '';
+          const version = process.env.META_GRAPH_VERSION || 'v24.0';
+          const wanted = ['instagram_basic','pages_show_list','pages_read_engagement','instagram_content_publish','business_management'];
+          if (!token) { console.log('TOKEN_MISSING'); process.exit(0); }
+          try {
+            const url = new URL('https://graph.facebook.com/' + version + '/me/permissions');
+            const res = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
+            const body = await res.json();
+            if (!res.ok || body.error) {
+              console.log('PERMISSIONS_CHECK_UNAVAILABLE HTTP=' + res.status + ' CODE=' + (body.error?.code ?? 'UNKNOWN'));
+            } else {
+              const entries = Array.isArray(body.data) ? body.data : [];
+              console.log('PERMISSIONS_CHECK_READABLE');
+              for (const name of wanted) {
+                const row = entries.find(x => x.permission === name);
+                console.log('PERMISSION_' + name.toUpperCase() + '=' + (row?.status || 'NOT_LISTED'));
+              }
+            }
+          } catch {
+            console.log('PERMISSIONS_CHECK_NETWORK_ERROR');
+          }
+          NODE
       - name: Read-only account lookup
         env:
           META_PAGE_ID: ${{ secrets.META_PAGE_ID }}
