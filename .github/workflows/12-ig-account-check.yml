@@ -20,6 +20,21 @@ jobs:
           node-version: '24'
       - name: Unit tests (no remote API)
         run: node --test tests/discover-instagram.test.js
+      - name: Verify configured Facebook Page ID without revealing secret
+        env:
+          CONFIGURED_PAGE_ID: ${{ secrets.META_PAGE_ID }}
+          EXPECTED_PAGE_ID: '1144107962110268'
+        shell: bash
+        run: |
+          if [[ -z "$CONFIGURED_PAGE_ID" ]]; then
+            echo "PAGE_ID_MISSING"
+            exit 1
+          fi
+          if [[ "$CONFIGURED_PAGE_ID" != "$EXPECTED_PAGE_ID" ]]; then
+            echo "PAGE_ID_MISMATCH"
+            exit 1
+          fi
+          echo "PAGE_ID_MATCH"
       - name: Read-only account lookup
         env:
           META_PAGE_ID: ${{ secrets.META_PAGE_ID }}
