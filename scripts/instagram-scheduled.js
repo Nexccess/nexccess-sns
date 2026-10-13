@@ -20,13 +20,38 @@ async function request(method,endpoint,token,values={}){
   return data;
 }
 const sleep=(ms)=>new Promise(resolve=>setTimeout(resolve,ms));
+// Persist posted status in the GitHub queue so scheduled runs never republish it.
+// The Actions token is restricted to this repository. This never touches SNS main.
+async function markPublished(queue,post,report){
+  const token=process.env.GITHUB_TOKEN;
+  const repo=process.env.GITHUB_REPOSITORY;
+  const ref=process.env.GITHUB_REF_NAME;
+  if(!token||!repo||!ref)fail('PUBLISHED_BUT_QUEUE_PERSISTENCE_UNAVAILABLE');
+  const api='https://api.github.com/repos/'+repo+'/contents/data/instagram-post-queue.json';
+  const headers={Authorization:'Bearer '+token,Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'};
+  const current=await fetch(api+'?ref='+encodeURIComponent(ref),{headers});
+  if(!current.ok)fail('PUBLISHED_BUT_QUEUE_READ_FAILED_'+current.status);
+  const metadata=await current.json();
+  if(!metadata.sha)fail('PUBLISHED_BUT_QUEUE_SHA_MISSING');
+  // Detect edits since the job checked out its source.
+  const serverQueue=JSON.parse(Buffer.from(metadata.content.replace(/\\s/g,''),'base64').toString('utf8'));
+  const item=serverQueue.posts.find(x=>x.id===post.id);
+  if(!item||item.caption!==post.caption||item.image_url!==post.image_url)fail('PUBLISHED_BUT_QUEUE_CHANGED');
+  item.status='PUBLISHED';
+  item.published_post_id=report.post_id;
+  item.published_permalink=report.permalink;
+  item.published_at_utc=new Date().toISOString();
+  const content=Buffer.from(JSON.stringify(serverQueue,null,2)+'\\n').toString('base64');
+  const updated=await fetch(api,{method:'PUT',headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify({message:'chore(12-ig): record published queue item '+post.id,content,sha:metadata.sha,branch:ref})});
+  if(!updated.ok)fail('PUBLISHED_BUT_QUEUE_WRITE_FAILED_'+updated.status);
+}
 async function main(){
   let report={status:'NOT_RUN',timestamp:new Date().toISOString(),post_id:null,permalink:null};
   try{
     const queue=JSON.parse(await readFile('data/instagram-post-queue.json','utf8'));
     if(!Array.isArray(queue.posts)) fail('INVALID_QUEUE');
     const now=Date.now();
-    const eligible=queue.posts.filter(p=>p.approved===true && typeof p.scheduled_at_utc==='string' && Date.parse(p.scheduled_at_utc)<=now && !Number.isNaN(Date.parse(p.scheduled_at_utc)));
+    const eligible=queue.posts.filter(p=>p.status!=='PUBLISHED' && p.approved===true && typeof p.scheduled_at_utc==='string' && Date.parse(p.scheduled_at_utc)<=now && !Number.isNaN(Date.parse(p.scheduled_at_utc)));
     eligible.sort((a,b)=>a.scheduled_at_utc.localeCompare(b.scheduled_at_utc));
     report.pending=eligible.length;
     if(!eligible.length){report.status='NO_APPROVED_DUE_POST';return;}
@@ -44,7 +69,7 @@ async function main(){
     const recent=await request('GET',IG+'/media',token,{fields:'id,caption,permalink',limit:50});
     if(!Array.isArray(recent.data))fail('RECENT_MEDIA_UNAVAILABLE');
     const duplicate=recent.data.find(x=>x.caption===p.caption);
-    if(duplicate){report.status='ALREADY_PUBLISHED';report.post_id=duplicate.id;report.permalink=duplicate.permalink??null;return;}
+    if(duplicate){report.status='ALREADY_PUBLISHED';report.post_id=duplicate.id;report.permalink=duplicate.permalink??null;await markPublished(queue,p,report);return;}
     // Ensure image can be fetched by Meta.
     const imageResponse=await fetch(p.image_url,{method:'GET',signal:AbortSignal.timeout(20000)});
     if(!imageResponse.ok||!imageResponse.headers.get('content-type')?.includes('image/jpeg'))fail('PUBLIC_JPEG_UNAVAILABLE');
@@ -68,6 +93,7 @@ async function main(){
     const media=await request('GET',published.id,token,{fields:'id,permalink,caption'});
     report.permalink=media.permalink??null;
     report.status=media.caption===p.caption && media.permalink?'PUBLISHED_VERIFIED':'PUBLISHED_NEEDS_REVIEW';
+    if(report.status==='PUBLISHED_VERIFIED')await markPublished(queue,p,report);
   }catch(e){
     report.error=String(e.message).slice(0,120);
     if(report.status!=='PUBLISH_RESULT_UNKNOWN'&&report.status!=='PUBLISHED_URL_UNVERIFIED')report.status='FAILED';
