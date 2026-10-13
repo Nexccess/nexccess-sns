@@ -8,7 +8,8 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.15.0",
-    "twitter-api-v2": "^1.17.2"
+    "twitter-api-v2": "^1.17.2",
+    "sharp": "^0.34.4"
   },
   "engines": {
     "node": ">=20"
