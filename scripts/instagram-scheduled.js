@@ -34,14 +34,14 @@ async function markPublished(queue,post,report){
   const metadata=await current.json();
   if(!metadata.sha)fail('PUBLISHED_BUT_QUEUE_SHA_MISSING');
   // Detect edits since the job checked out its source.
-  const serverQueue=JSON.parse(Buffer.from(metadata.content.replace(/\\s/g,''),'base64').toString('utf8'));
+  const serverQueue=JSON.parse(Buffer.from(metadata.content.replace(/\s/g,''),'base64').toString('utf8'));
   const item=serverQueue.posts.find(x=>x.id===post.id);
   if(!item||item.caption!==post.caption||item.image_url!==post.image_url)fail('PUBLISHED_BUT_QUEUE_CHANGED');
   item.status='PUBLISHED';
   item.published_post_id=report.post_id;
   item.published_permalink=report.permalink;
   item.published_at_utc=new Date().toISOString();
-  const content=Buffer.from(JSON.stringify(serverQueue,null,2)+'\\n').toString('base64');
+  const content=Buffer.from(JSON.stringify(serverQueue,null,2)+'\n').toString('base64');
   const updated=await fetch(api,{method:'PUT',headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify({message:'chore(12-ig): record published queue item '+post.id,content,sha:metadata.sha,branch:ref})});
   if(!updated.ok)fail('PUBLISHED_BUT_QUEUE_WRITE_FAILED_'+updated.status);
 }
