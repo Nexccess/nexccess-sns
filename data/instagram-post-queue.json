@@ -1,0 +1,5 @@
+{
+  "schema_version": 1,
+  "notes": "Only posts with approved=true and due scheduled_at_utc are eligible. Store a permanent public JPEG URL; never paste tokens.",
+  "posts": []
+}
