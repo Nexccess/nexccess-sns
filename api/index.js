@@ -35,6 +35,10 @@ export default async function handler(req, res) {
     if (req.method === 'POST' && url === '/api/articles') {
       return await handleAddArticle(req, res);
     }
+    if (url === '/api/instagram/test-image' || url === '/api/instagram/test-post') {
+      const { instagramTest } = await import('./instagram-test.js');
+      return await instagramTest(req, res);
+    }
     if (req.method === 'GET' && url === '/api/instagram/account') {
       return await handleInstagramAccount(req, res);
     }
