@@ -1,7 +1,6 @@
 // Isolated Instagram test adapter. No writes to existing SNS routes.
-import sharp from 'sharp';
-
 const SOURCE = 'https://raw.githubusercontent.com/Nexccess/pathflow-master-lp/main/p/0833/assets/hero.png';
+const IMAGE_URL = 'https://images.weserv.nl/?url=raw.githubusercontent.com%2FNexccess%2Fpathflow-master-lp%2Fmain%2Fp%2F0833%2Fassets%2Fhero.png&output=jpg&w=1080&q=85';
 const API_VERSION = 'v24.0';
 const EXPECTED_PAGE_ID = '1144107962110268';
 const EXPECTED_USERNAME = 'nexccess.llc';
@@ -31,22 +30,10 @@ async function discover(token) {
   if(account.username!==EXPECTED_USERNAME) return {status:'USERNAME_MISMATCH',username:account.username??null};
   return {status:'IG_ID_FOUND',id:String(id),username:account.username};
 }
-async function image(req,res){
-  try{
-    const r=await fetch(SOURCE,{signal:AbortSignal.timeout(12000)});
-    if(!r.ok) return res.status(502).end('IMAGE_SOURCE_ERROR');
-    const bytes=Buffer.from(await r.arrayBuffer());
-    if(bytes.length>6000000) return res.status(413).end('IMAGE_TOO_LARGE');
-    const jpeg=await sharp(bytes).rotate().resize({width:1080,withoutEnlargement:true}).jpeg({quality:85}).toBuffer();
-    res.setHeader('Content-Type','image/jpeg');
-    res.setHeader('Cache-Control','public, max-age=300');
-    return res.status(200).send(jpeg);
-  }catch {return res.status(502).end('IMAGE_UNAVAILABLE');}
-}
 export async function instagramTest(req,res){
-  if(req.method==='GET' && req.url.split('?')[0]==='/api/instagram/test-image') return image(req,res);
-  const apiSecret=process.env.API_SECRET;
-  if(!apiSecret || req.headers.authorization !== 'Bearer '+apiSecret) return reply(res,401,{status:'UNAUTHORIZED'});
+  // Dedicated test-only Preview secret: does not expose or reuse production API_SECRET.
+  const testKey=process.env.IG_TEST_RUN_KEY || '';
+  if(!testKey || req.headers['x-ig-test-key'] !== testKey) return reply(res,401,{status:'UNAUTHORIZED'});
   const token=process.env.META_PAGE_ACCESS_TOKEN || '';
   try{
     const account=await discover(token);
@@ -54,12 +41,12 @@ export async function instagramTest(req,res){
     if(req.method==='GET') return reply(res,200,{status:'IG_ID_FOUND',username:account.username,instagram_user_id:account.id});
     if(req.method!=='POST') return reply(res,405,{status:'METHOD_NOT_ALLOWED'});
     const action=req.body?.action;
-    if(action!=='PUBLISH_ONE_TEST_POST') return reply(res,200,{status:'DRY_RUN_PASS',username:account.username,image_source:SOURCE,caption});
+    if(action!=='PUBLISH_ONE_TEST_POST') return reply(res,200,{status:'DRY_RUN_PASS',username:account.username,image_source:SOURCE,jpeg_url:IMAGE_URL,caption});
     // Before publishing: check the exact caption has not been posted recently.
     const recent=await graph(account.id+'/media',{token,params:{fields:'id,caption',limit:'50'}});
     if(!Array.isArray(recent.data)) return reply(res,409,{status:'DUPLICATE_CHECK_UNAVAILABLE'});
     if(recent.data.some(x=>x.caption===caption)) return reply(res,409,{status:'DUPLICATE_CAPTION_DETECTED'});
-    const imageUrl='https://'+req.headers.host+'/api/instagram/test-image';
+    const imageUrl=IMAGE_URL;
     // Fail before publication when JPEG serving does not work externally.
     const probe=await fetch(imageUrl,{signal:AbortSignal.timeout(14000)});
     if(!probe.ok || !String(probe.headers.get('content-type')).includes('image/jpeg')) return reply(res,502,{status:'JPEG_IMAGE_UNAVAILABLE'});
