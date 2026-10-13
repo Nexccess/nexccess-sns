@@ -96,12 +96,13 @@ async function main(){
     if(report.status==='PUBLISHED_VERIFIED')await markPublished(queue,p,report);
   }catch(e){
     report.error=String(e.message).slice(0,120);
-    if(report.status!=='PUBLISH_RESULT_UNKNOWN'&&report.status!=='PUBLISHED_URL_UNVERIFIED')report.status='FAILED';
+    if(report.status==='PUBLISHED_VERIFIED'||report.status==='ALREADY_PUBLISHED')report.status='PUBLISHED_QUEUE_UPDATE_FAILED';
+    else if(report.status!=='PUBLISH_RESULT_UNKNOWN'&&report.status!=='PUBLISHED_URL_UNVERIFIED')report.status='FAILED';
   }finally{
     await mkdir(path.dirname(artifact),{recursive:true});
     await writeFile(artifact,JSON.stringify(report,null,2)+'\n');
     console.log(JSON.stringify(report));
-    if(['FAILED','PUBLISH_RESULT_UNKNOWN','PUBLISHED_NEEDS_REVIEW','PUBLISHED_URL_UNVERIFIED'].includes(report.status))process.exitCode=1;
+    if(['FAILED','PUBLISH_RESULT_UNKNOWN','PUBLISHED_NEEDS_REVIEW','PUBLISHED_URL_UNVERIFIED','PUBLISHED_QUEUE_UPDATE_FAILED'].includes(report.status))process.exitCode=1;
   }
 }
 await main();
