@@ -20,6 +20,12 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
+  // Isolated Instagram test endpoint uses its own Preview-only secret.
+  if (req.url.split('?')[0] === '/api/instagram/test-post') {
+    const { instagramTest } = await import('./instagram-test.js');
+    return instagramTest(req, res);
+  }
+
   // Bearer トークン認証（GitHub Secrets と同じ値を使用）
   const authHeader = req.headers.authorization ?? '';
   if (authHeader !== `Bearer ${process.env.API_SECRET}`) {
