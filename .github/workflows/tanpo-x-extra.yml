@@ -1,0 +1,33 @@
+name: Tanpo X Additional Posts Trial
+on:
+  workflow_dispatch:
+    inputs:
+      slot:
+        description: "1=12:15 JST, 2=19:15 JST"
+        required: true
+        type: choice
+        options: ["1", "2"]
+  schedule:
+    - cron: "15 3 * * *"
+    - cron: "15 10 * * *"
+permissions:
+  contents: read
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+      - run: npm ci
+      - name: Post X (7-day trial only)
+        run: node scripts/post-x-extra.js
+        env:
+          X_SLOT: ${{ github.event_name == 'workflow_dispatch' && inputs.slot || (github.event.schedule == '15 3 * * *' && '1' || '2') }}
+          X_APP_KEY: ${{ secrets.X_APP_KEY }}
+          X_APP_SECRET: ${{ secrets.X_APP_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
