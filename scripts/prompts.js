@@ -1,120 +1,67 @@
 /**
- * prompts.js
- * 各SNS向けのプロンプト構築、テーマ定義、および遷移先（短縮URLベース）の統合管理
- *
- * 修正内容:
- * - ドメインをすべて「go.pathflow.org」に統一（404エラー対策）
- * - buildUserPrompt 内の Twitter（X）プロンプトからURL出力を完全削除（URL二重付与バグ対策）
+ * 年内集中キャンペーン: 不動産担保ローン
+ * 本番への反映はPRレビュー後。架空の実績や融資保証の生成は禁止。
  */
-
-// ── テーマ・配信URL定義（go.pathflow.org 統一版） ─────────────────────────
-const THEMES = [
-  {
-    id: "pathflow_main",
-    name: "Path-Flow（経営可視化・AIナビゲーション）",
-    url: "https://main.pathflow.org/",
-    coreValue: "経営データの集約、AIによる次の一手の可視化、社長の現場依存からの脱却",
-    painPoint: "社長が現場を離れると売上が落ちる、社員に任せたいのに任せられない",
-    goUrl: {
-      facebook: "https://go.pathflow.org/go/fb-main",
-      x:        "https://go.pathflow.org/go/x-main",
-      threads:  "https://go.pathflow.org/go/th-main",
-      hatena:   "https://go.pathflow.org/go/ht-main"
-    }
-  },
-  {
-    id: "pathflow_shigyo",
-    name: "士業向けPath-Flow",
-    url: "https://shigyo.pathflow.org/",
-    coreValue: "士業事務所の顧問先開拓・紹介信用のAI自動化、提案精度の向上",
-    painPoint: "紹介頼みの限界、新規開拓に費やす時間と労力のロス",
-    goUrl: {
-      facebook: "https://go.pathflow.org/go/fb-shigyo",
-      x:        "https://go.pathflow.org/go/x-shigyo",
-      threads:  "https://go.pathflow.org/go/th-shigyo",
-      hatena:   "https://go.pathflow.org/go/ht-shigyo"
-    }
-  },
-  {
-    id: "seisakukinyukouko",
-    name: "政策金融公庫（融資審査・無料診断）",
-    url: "https://www.seisakukinyukouko.site/index.html",
-    coreValue: "AIシミュレーションによる融資通過率の可視化、事業計画のブラッシュアップ",
-    painPoint: "融資を受けたいが準備が分からない、事業計画書の書き方が分からない、審査が不安",
-    goUrl: {
-      facebook: "https://go.pathflow.org/go/fb-koukou",
-      x:        "https://go.pathflow.org/go/x-koukou",
-      threads:  "https://go.pathflow.org/go/th-koukou",
-      hatena:   "https://go.pathflow.org/go/ht-koukou"
-    }
-  },
-  {
-    id: "pathflow_souzoku",
-    name: "相続（事業承継・資産防衛）",
-    url: "https://souzoku.pathflow.org/",
-    coreValue: "親族間トラブルの防止、最適な税制スキームの選択、円滑な株式・資産移転",
-    painPoint: "将来の相続税が不安、何から手をつければ良いか分からない、後継者への引き継ぎに懸念",
-    goUrl: {
-      facebook: "https://go.pathflow.org/go/fb-souzoku",
-      x:        "https://go.pathflow.org/go/x-souzoku",
-      threads:  "https://go.pathflow.org/go/th-souzoku",
-      hatena:   "https://go.pathflow.org/go/ht-souzoku"
-    }
-  }
+const BASE_URL = "https://fudousan-tanpo.tokyo/";
+const TOPICS = [
+  {id:"corporate-refinance",name:"法人の不動産担保ローン借り換え",painPoint:"既存借入の返済額が重い",angle:"借り換え前後の総支払額・手数料・抵当権費用の比較"},
+  {id:"interest-only",name:"借入期間中の利息のみ返済",painPoint:"月々の元金返済負担を抑えたい",angle:"利息のみの期間中は元金が減らない点と満期返済の確認"},
+  {id:"five-year",name:"返済期間5年の確認事項",painPoint:"5年後の一括返済に不安がある",angle:"満期時の元金残高と返済資金の準備"},
+  {id:"working-capital",name:"法人所有不動産を使った運転資金",painPoint:"事業資金の調達先を比較したい",angle:"資金使途・希望時期・不動産の状況を整理する"},
+  {id:"rate-cost",name:"不動産担保ローンの金利と諸費用",painPoint:"表示金利だけで借入先を決めてよいか",angle:"金利と事務手数料などの総コストの確認"},
+  {id:"collateral-risk",name:"不動産を担保にする際のリスク",painPoint:"返済が難しくなったときの影響が心配",angle:"担保不動産を失う可能性と返済計画"},
+  {id:"first-consultation",name:"借入希望額未定の資金調達相談",painPoint:"希望額が決まらず相談をためらっている",angle:"資金使途・必要時期・物件情報から条件整理"}
 ];
-
-export function selectTheme() {
-  const idx = Math.floor(Math.random() * THEMES.length);
-  return THEMES[idx];
+function campaignUrl(platform,topicId) {
+  const u = new URL(BASE_URL);
+  u.searchParams.set("utm_source",platform);
+  u.searchParams.set("utm_medium","organic_social");
+  u.searchParams.set("utm_campaign","tanpo_2026_yearend");
+  u.searchParams.set("utm_content",topicId);
+  return u.toString();
 }
-
-// ── AIシステムプロンプト ──────────────────────────────────────────────────
+export function selectTheme(now=new Date()) {
+  const day = Math.floor(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate()) / 86400000);
+  const topic = TOPICS[((day % TOPICS.length)+TOPICS.length)%TOPICS.length];
+  return {
+    ...topic,
+    url: BASE_URL,
+    coreValue:"不動産担保ローンの借入条件整理と複数の紹介先の検討",
+    goUrl:{
+      x:campaignUrl("x",topic.id),
+      facebook:campaignUrl("facebook",topic.id),
+      threads:campaignUrl("threads",topic.id),
+      hatena:campaignUrl("hatena",topic.id)
+    }
+  };
+}
 export function buildSystemPrompt() {
-  return `あなたは企業の経営参謀、およびプロのWEBマーケターです。
-ターゲット層（中小企業経営者、個人事業主、創業検討者）の心理を深く洞察し、彼らの痛みに寄り添いつつ、解決策（提供サービス）へと自然に誘導する、極めて説得力の高いSNS投稿テキストを作成してください。
-
-【出力形式】
-必ず以下のキーを持つ純粋なJSONオブジェクトのみを出力してください。マークダウン（\`\`\`json 等）の装飾は一切不要です。
-{
-  "facebook": "Facebook用の長文コンテンツ（改行を含める）",
-  "twitter": "X用の140文字以内のコンテンツ",
-  "threads": "Threads用の短めかつストーリー性のあるコンテンツ",
-  "hatena_title": "はてなブログ用の惹きつけるタイトル",
-  "hatena_body": "はてなブログ用のリード文・解説（改行を含める）"
-}`;
+  return `あなたは不動産担保ローンの情報提供を担当する編集者です。
+金融情報の正確性を優先し、読者の意思決定に役立つ具体的な比較項目を示してください。
+対象は不動産を所有し、事業資金・借り換え・返済条件を検討する法人経営者・個人事業主等です。
+事実として使用できる情報は下記に限ります。
+- Nexccessは不動産担保ローンの資金調達条件の相談と紹介先の検討に対応。
+- 過去支援実績の金利表示は年2.0%〜10.0%。将来の金利を保証しない。
+- 返済方法には利息のみ、元利均等などの支援実績があるが、適用は借入先審査による。
+- 利息のみの期間中、元金は減らない。
+絶対禁止：融資の承認保証、実行期間の保証、架空の相談事例・実績・金利・金額・人物引用、未確認の法的断定、恐怖を煽る表現。
+サービス説明は「融資の直接提供」ではなく「条件整理と借入先の検討」です。
+投稿末尾は具体的な比較・準備の観点と穏やかな相談導線にしてください。
+出力は次のキーを持つJSONオブジェクトのみ：
+{"facebook":"本文","twitter":"本文","threads":"本文","hatena_title":"タイトル","hatena_body":"本文"}`;
 }
-
-// ── AIユーザープロンプト（URL生成禁止版） ──────────────────────────────────
 export function buildUserPrompt(theme) {
-  return `以下の【配信テーマ】を元に、指定された各SNS向けの投稿文（JSON形式）を生成してください。
-
-【重要制約・出力ルール】
-1. すべての媒体（facebook, twitter, threads, hatena_body）において、テキスト本文内にURL（http... や pathflow.org... 等）は絶対に含めないでください。
-   システム側が後から自動付与するため、AI側でURLを出力すると重複バグになります。URLの記述やプレースホルダーは一切禁止します。
-2. 煽り表現や誇大広告、安っぽいキャッチコピーは禁止。専門家としての信頼性と、経営者がハッとするようなリアルな現場の課題感から文章を始めてください。
-
-【配信テーマ情報】
-- サービス名: ${theme.name}
-- サービスの核心価値: ${theme.coreValue}
-- ターゲットの悩み・痛み: ${theme.painPoint}
-
-【各媒体の執筆指示】
-- facebook: 
-    ターゲットがスクロールを止めるような、相談現場でよくある経営者の一言から開始。
-    課題の指摘だけでなく、なぜそれが起こるのかの構造的な原因を解説し、気づきを与える。
-    文字数は300〜600文字程度。改行を適切に挟むこと。末尾は「詳細はこちら」などの自然な結びの1行で終わらせる（URLは書かない）。
-
-- twitter: 
-    【X用】140文字以内。本文のみを生成してください。URLは含めないでください。システム側で自動的に付与されます。
-    煽り表現は禁止。相談現場でよくある一言から始める。ハッシュタグも不要。
-
-- threads: 
-    150〜200文字程度。Xよりも少しエッセイ風、あるいはストーリーテリングを意識したトーン。
-    URLは含めない。
-
-- hatena_title: 
-    はてなブログのタイトル。クリックしたくなるが釣りではない、本質的な経営課題を突く言葉。
-- hatena_body: 
-    ブログの導入・リード文となる解説記事（200〜400文字）。
-    詳細を詳しく知りたくなるような問題提起を行い、末尾は自然に誘導する文章で締める（URLは書かない）。`;
+  return `投稿テーマ：${theme.name}
+読者の状況：${theme.painPoint}
+説明する観点：${theme.angle}
+共通の誘導先：${theme.url}
+同一内容の言い換え量産ではなく、各媒体で自然に読める原稿を作成してください。
+facebook: 180〜300文字、箇条書きが適切なら使用。
+twitter: 100文字以内で、具体的なチェック項目を1つ提示。
+threads: 130〜180文字で、要点と注意点を整理。
+hatena_title: 問題を明確にする見出し。
+hatena_body: 300〜450文字で比較項目と注意点を記載。
+URLやハッシュタグは本文に含めないこと。コードが媒体別URLを付けます。
+金融商品に関する具体的な条件は必ず「借入先の審査による」と明記し、実績を創作しないこと。
+出力は純粋なJSONのみ。`;
 }
