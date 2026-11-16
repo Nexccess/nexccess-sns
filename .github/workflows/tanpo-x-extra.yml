@@ -23,6 +23,15 @@ jobs:
           node-version: "24"
           cache: "npm"
       - run: npm ci
+      - name: Install SVG renderer and Japanese fonts
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends librsvg2-bin fonts-noto-cjk
+      - name: Render separate PNG diagrams
+        run: |
+          rsvg-convert assets/tanpo-equity-diagram.svg -o assets/tanpo-equity-diagram.png
+          rsvg-convert assets/tanpo-consolidation-diagram.svg -o assets/tanpo-consolidation-diagram.png
+          file assets/tanpo-*-diagram.png
       - name: Post X (7-day trial only)
         run: node scripts/post-x-extra.js
         env:
