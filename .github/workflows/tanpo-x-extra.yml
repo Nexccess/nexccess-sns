@@ -22,7 +22,7 @@ jobs:
         with:
           node-version: "24"
           cache: "npm"
-      - run: npm ci
+      - run: npm install --no-audit --no-fund
       - name: Install SVG renderer and Japanese fonts
         run: |
           sudo apt-get update -qq
@@ -32,6 +32,13 @@ jobs:
           rsvg-convert assets/tanpo-equity-diagram.svg -o assets/tanpo-equity-diagram.png
           rsvg-convert assets/tanpo-consolidation-diagram.svg -o assets/tanpo-consolidation-diagram.png
           file assets/tanpo-*-diagram.png
+      - name: Validate script syntax
+        run: node --check scripts/post-x-extra.js
+      - name: Dry-run check before posting
+        run: node scripts/post-x-extra.js
+        env:
+          DRY_RUN: "1"
+          X_SLOT: ${{ github.event_name == 'workflow_dispatch' && inputs.slot || (github.event.schedule == '15 3 * * *' && '1' || '2') }}
       - name: Post X (7-day trial only)
         run: node scripts/post-x-extra.js
         env:
