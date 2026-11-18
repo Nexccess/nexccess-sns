@@ -1,0 +1,70 @@
+name: Tanpo X Publishing Trial
+on:
+  push:
+    branches: [feature/tanpo-campaign-2026]
+    paths:
+      - .github/workflows/tanpo-x-extra.yml
+      - scripts/post-x-extra.js
+      - package-lock.json
+      - assets/tanpo-*.svg
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Dry run by default. Live uses the selected slot for today."
+        type: choice
+        options: [dry-run, live]
+        default: dry-run
+      slot:
+        description: "1=07:18 JST, 2=12:15 JST, 3=19:15 JST"
+        type: choice
+        options: ["1", "2", "3"]
+        default: "1"
+  schedule:
+    - cron: "18 22 * * *"
+    - cron: "15 3 * * *"
+    - cron: "15 10 * * *"
+permissions:
+  actions: read
+  contents: write
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Render three separate PNG assets
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends librsvg2-bin fonts-noto-cjk
+          for svg in assets/tanpo-*.svg; do
+            LC_ALL=C.UTF-8 LANG=ja_JP.UTF-8 rsvg-convert "$svg" -o "${svg%.svg}.png"
+          done
+      - name: Validate all 21 posts without X credentials
+        run: node scripts/post-x-extra.js
+        env:
+          DRY_RUN: "1"
+      - name: Publish one X post
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'live'))
+        run: |
+          set -euo pipefail
+          for name in sns github-pages note hatena threads; do
+            state="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/$name-pipeline.yml" --jq .state)"
+            test "$state" = disabled_manually || { echo "Legacy workflow is not disabled: $name"; exit 1; }
+          done
+          X_EVENT_CREATED_AT="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --jq .created_at)"
+          export X_EVENT_CREATED_AT
+          node scripts/post-x-extra.js
+        env:
+          GH_TOKEN: ${{ github.token }}
+          X_SLOT: ${{ github.event_name == 'workflow_dispatch' && inputs.slot || (github.event.schedule == '18 22 * * *' && '1' || (github.event.schedule == '15 3 * * *' && '2' || '3')) }}
+          X_APP_KEY: ${{ secrets.X_APP_KEY }}
+          X_APP_SECRET: ${{ secrets.X_APP_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
