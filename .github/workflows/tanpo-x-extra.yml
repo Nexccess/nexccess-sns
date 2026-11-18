@@ -68,22 +68,3 @@ jobs:
           X_APP_SECRET: ${{ secrets.X_APP_SECRET }}
           X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
           X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
-
-      - name: Verify two live image posts before merge on 2026-11-18 JST
-        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/tanpo-campaign-2026'
-        run: |
-          set -euo pipefail
-          for name in sns github-pages note hatena threads; do
-            test "$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/$name-pipeline.yml" --jq .state)" = disabled_manually
-          done
-          X_EVENT_CREATED_AT="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --jq .created_at)"
-          export X_EVENT_CREATED_AT
-          X_SLOT=2 node scripts/post-x-extra.js
-          X_SLOT=3 node scripts/post-x-extra.js
-        env:
-          X_RELEASE_VERIFICATION: "1"
-          GH_TOKEN: ${{ github.token }}
-          X_APP_KEY: ${{ secrets.X_APP_KEY }}
-          X_APP_SECRET: ${{ secrets.X_APP_SECRET }}
-          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
-          X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
