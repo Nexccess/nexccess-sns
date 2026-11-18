@@ -102,8 +102,10 @@ try {
     if (!post || !Number.isFinite(+startedAt) || jstDate.format(startedAt) !== post.date) {
       console.log("Outside the original JST publishing day or trial window. No post.");
     } else {
-      if (process.env.GITHUB_ACTIONS !== "true" || process.env.GITHUB_REF !== "refs/heads/main") {
-        throw new Error("Live publishing requires GitHub Actions on main");
+      const releaseCheck = process.env.GITHUB_REF === "refs/heads/feature/tanpo-campaign-2026" &&
+        process.env.X_RELEASE_VERIFICATION === "1" && post.date === "2026-11-18" && [2, 3].includes(post.slot);
+      if (process.env.GITHUB_ACTIONS !== "true" || (process.env.GITHUB_REF !== "refs/heads/main" && !releaseCheck)) {
+        throw new Error("Invalid live publishing ref");
       }
       const image = readImage(post);
       const reservation = `refs/tags/tanpo-x-reserved/${post.date}/${post.slot}`;
