@@ -13,7 +13,7 @@
 // ─────────────────────────────────────────────────
 // 簡易ルーター（Vercel は1ファイル1関数なので自前で振り分け）
 // ─────────────────────────────────────────────────
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   // CORS ヘッダー（Make / 外部Webhookから叩く場合に必要）
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
