@@ -41,7 +41,8 @@ jobs:
           set -euo pipefail
           for name in sns github-pages note hatena threads; do
             workflow="repos/$GITHUB_REPOSITORY/actions/workflows/$name-pipeline.yml"
-            gh api --method PUT "$workflow/disable"
+            state="$(gh api "$workflow" --jq .state)"
+            if [ "$state" = active ]; then gh api --method PUT "$workflow/disable"; fi
           done
           for name in sns github-pages note hatena threads; do
             workflow="repos/$GITHUB_REPOSITORY/actions/workflows/$name-pipeline.yml"
