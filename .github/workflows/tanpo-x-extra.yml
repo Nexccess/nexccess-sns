@@ -27,38 +27,6 @@ permissions:
   actions: read
   contents: write
 jobs:
-  stop-legacy:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/feature/tanpo-campaign-2026'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      actions: write
-    steps:
-      - name: Disable the five legacy workflows and verify their state
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          for name in sns github-pages note hatena threads; do
-            workflow="repos/$GITHUB_REPOSITORY/actions/workflows/$name-pipeline.yml"
-            state="$(gh api "$workflow" --jq .state)"
-            if [ "$state" = active ]; then gh api --method PUT "$workflow/disable"; fi
-          done
-          for name in sns github-pages note hatena threads; do
-            workflow="repos/$GITHUB_REPOSITORY/actions/workflows/$name-pipeline.yml"
-            for attempt in 1 2 3; do
-              state="$(gh api "$workflow" --jq .state)"
-              if [ "$state" = disabled_manually ]; then break; fi
-              sleep 2
-            done
-            test "$state" = disabled_manually
-            for status in queued in_progress waiting requested pending; do
-              for run in $(gh api --paginate "$workflow/runs?status=$status" --jq '.workflow_runs[].id'); do
-                gh api --method POST "repos/$GITHUB_REPOSITORY/actions/runs/$run/cancel"
-              done
-            done
-            echo "$name-pipeline.yml disabled_manually"
-          done
   post:
     runs-on: ubuntu-latest
     timeout-minutes: 10
