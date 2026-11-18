@@ -1,10 +1,13 @@
 name: Gemini SNS Pipeline
-on:
-  workflow_dispatch:
-  schedule:
-    - cron: "18 22 * * *"
+# Legacy publishing paused. Original triggers are retained below for reference.
+# on:
+#   workflow_dispatch:
+#   schedule:
+#     - cron: "18 22 * * *"
+on: workflow_call
 jobs:
   post:
+    if: ${{ false }}
     name: Generate and Post
     runs-on: ubuntu-latest
     timeout-minutes: 30
