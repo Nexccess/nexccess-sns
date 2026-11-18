@@ -1,7 +1,7 @@
 # 不動産担保ローン｜図解別 投稿原稿（レビュー用）
 
 作成日：2026-11-17
-状態：原稿保存・未投稿。図解は1投稿につき1枚。各媒体の短文版と標準版は代替案であり、同日に両方を配信しない。
+状態：レビュー用文案。図解は1投稿につき1枚。各媒体の短文版と標準版は代替案であり、同日に両方を配信しない。
 
 ## 投稿1｜住宅ローン返済と担保余力
 画像：assets/tanpo-equity-diagram.svg
@@ -74,7 +74,7 @@ Facebook：投稿1 https://fudousan-tanpo.tokyo/?utm_source=facebook&utm_medium=
 Facebook：投稿2 https://fudousan-tanpo.tokyo/?utm_source=facebook&utm_medium=organic_social&utm_campaign=tanpo_2026_yearend&utm_content=consolidation
 
 ## 表示上の注意
-- 投稿は別日・別画像で行う。短文版と標準版は同時に公開しない。
+- 図解ごとに別投稿とする。短文版と標準版は同時に公開しない。
 - 通常の住宅ローンへ他の借入を直接組み込めるという説明をしない。
 - 担保余力と追加融資額は一致しない。金利低下や返済負担軽減を保証しない。
-- SNS用画像の自動添付処理、投稿実行、実機検証は未実施。
+- X自動配信の実行原稿は scripts/post-x-extra.js を参照。
