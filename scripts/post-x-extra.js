@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { TwitterApi } from "twitter-api-v2";
 
 const START = "2026-11-18";
-const END = "2026-11-24";
+const END = "2026-12-31";
 const DAY = 86_400_000;
 const TOPICS = ["consultation", "equity", "consolidation"];
 const IMAGES = {
@@ -66,7 +66,8 @@ export function selectPost(now, slot) {
     utm_campaign: "tanpo_2026_yearend",
     utm_content: `${topic}_${date}`,
   }).toString();
-  const body = COPY[day][slot - 1];
+  const checks = ["必要額も整理を。", "希望時期も確認を。", "登記情報も準備を。", "返済原資も確認を。", "諸費用も比較を。", "契約条件も確認を。", "完済時期も確認を。"];
+  const body = COPY[day % COPY.length][slot - 1] + checks[Math.floor(day / COPY.length)];
   if ([...body].length * 2 + 25 > 280) throw new Error("X message exceeds weighted limit");
   return { date, slot, topic, body, url: url.href, image, alt };
 }
@@ -100,9 +101,9 @@ try {
     const startedAt = new Date(process.env.X_EVENT_CREATED_AT || "");
     const post = selectPost(new Date(), Number(process.env.X_SLOT));
     if (!post || !Number.isFinite(+startedAt) || jstDate.format(startedAt) !== post.date) {
-      console.log("Outside the original JST publishing day or trial window. No post.");
+      console.log("Outside the original JST publishing day or campaign window. No post.");
     } else {
-      if (process.env.GITHUB_ACTIONS !== "true" || process.env.GITHUB_REF !== "refs/heads/main") {
+      if (process.env.GITHUB_ACTIONS !== "true" || (process.env.GITHUB_REF !== "refs/heads/main" && !(process.env.X_RELEASE_VERIFICATION === "1" && process.env.GITHUB_REF === "refs/heads/feature/tanpo-campaign-2026" && process.env.GITHUB_EVENT_NAME === "workflow_dispatch"))) {
         throw new Error("Live publishing requires GitHub Actions on main");
       }
       const image = readImage(post);

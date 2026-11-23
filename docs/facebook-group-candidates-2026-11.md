@@ -24,7 +24,7 @@
 4. 接触数、リンククリック、有効問い合わせ、成約を測定。
 
 ## X試験運用
-- 日本時間07:18・12:15・19:15の3枠。試験期間は2026-11-18〜2026-11-24。
+- 日本時間07:18・12:15・19:15の3枠。試験期間は2026-11-18〜2026-12-31。
 - 1投稿につきPNG画像1枚。Facebookの配信はグループ規約に従う個別投稿。
 - 実装ファイル：scripts/post-x-extra.js、.github/workflows/tanpo-x-extra.yml
 - X自動化規則：https://help.x.com/ja/rules-and-policies/x-automation
