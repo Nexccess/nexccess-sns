@@ -73,6 +73,17 @@ export function selectPost(now, slot) {
   return { date, slot, topic, body, url: url.href, image, alt };
 }
 
+export function verifyPublication(post, publication) {
+  const media = publication.includes?.media || [];
+  if (!publication.data.text.startsWith(post.body + "\n\n") ||
+      !publication.data.entities?.urls?.some(link => link.expanded_url === post.url) ||
+      publication.data.attachments?.media_keys?.length !== 1 || media.length !== 1 ||
+      media[0].type !== "photo" || media[0].alt_text !== post.alt || !media[0].url) {
+    throw new Error("Public text, link or image does not match");
+  }
+  return media;
+}
+
 function readImage(post) {
   const image = readFileSync(new URL(`../assets/${post.image}.png`, import.meta.url));
   if (image.length < 24 || image.length > 5 * 1024 * 1024 ||
@@ -87,96 +98,77 @@ function git(...args) {
 }
 
 export async function main(now = new Date()) {
-let phase = "validation";
-try {
-  if (process.env.DRY_RUN === "1") {
-    const bodies = new Set();
-    for (let time = Date.parse(START); time <= Date.parse(END); time += DAY) {
-      for (const slot of [1, 2, 3]) {
-        const post = selectPost(new Date(time), slot);
-        if (bodies.has(post.body)) throw new Error("Duplicate copy");
-        bodies.add(post.body);
-        console.log(JSON.stringify({ ...post, pngBytes: readImage(post).length }));
+  let phase = "validation";
+  try {
+    if (process.env.DRY_RUN === "1") {
+      const bodies = new Set();
+      for (let time = Date.parse(START); time <= Date.parse(END); time += DAY) {
+        for (const slot of [1, 2, 3]) {
+          const post = selectPost(new Date(time), slot);
+          if (bodies.has(post.body)) throw new Error("Duplicate copy");
+          bodies.add(post.body);
+          console.log(JSON.stringify({ ...post, pngBytes: readImage(post).length }));
+        }
       }
-    }
-  } else {
-    const startedAt = new Date(process.env.X_EVENT_CREATED_AT || "");
-    const post = selectPost(now, Number(process.env.X_SLOT));
-    if (!post || !Number.isFinite(+startedAt) || jstDate.format(startedAt) !== post.date) {
-      console.log("Outside the original JST publishing day or campaign window. No post.");
     } else {
-      const releaseCheck = process.env.X_RELEASE_VERIFICATION === "1" &&
-        process.env.GITHUB_REF === "refs/heads/feature/tanpo-campaign-2026" &&
-        process.env.GITHUB_EVENT_NAME === "workflow_dispatch" && post.date === "2026-11-23" && [2, 3].includes(post.slot);
-      if (process.env.GITHUB_ACTIONS !== "true" || (process.env.GITHUB_REF !== "refs/heads/main" && !releaseCheck)) {
-        throw new Error("Live publishing requires GitHub Actions on main");
-      }
-      const image = readImage(post);
-      const recovery = releaseCheck && post.slot === 2;
-      const reservation = `refs/tags/tanpo-x-reserved/${post.date}/${post.slot}${recovery ? "-recovery-1" : ""}`;
-      phase = "reservation lookup";
-      if (git("ls-remote", "--refs", "origin", reservation)) {
-        console.log(`Slot already reserved. Verify the original run before any recovery: ${reservation}`);
+      const startedAt = new Date(process.env.X_EVENT_CREATED_AT || "");
+      const post = selectPost(now, Number(process.env.X_SLOT));
+      if (!post || !Number.isFinite(+startedAt) || jstDate.format(startedAt) !== post.date) {
+        console.log("Outside the original JST publishing day or campaign window. No post.");
       } else {
-        const { X_APP_KEY, X_APP_SECRET, X_ACCESS_TOKEN, X_ACCESS_SECRET } = process.env;
-        if (![X_APP_KEY, X_APP_SECRET, X_ACCESS_TOKEN, X_ACCESS_SECRET].every(Boolean)) {
-          throw new Error("Missing X credentials");
+        if (process.env.GITHUB_ACTIONS !== "true" || process.env.GITHUB_REF !== "refs/heads/main") {
+          throw new Error("Live publishing requires GitHub Actions on main");
         }
-        const x = new TwitterApi({
-          appKey: X_APP_KEY, appSecret: X_APP_SECRET,
-          accessToken: X_ACCESS_TOKEN, accessSecret: X_ACCESS_SECRET,
-        }).readWrite;
-        if (recovery) {
-          phase = "recovery duplicate check";
-          const { data: owner } = await x.v2.me();
-          const timeline = await x.v2.userTimeline(owner.id, { max_results: 100, "tweet.fields": ["entities", "created_at"], start_time: "2026-11-22T15:00:00Z" });
-          if (timeline.tweets.some(tweet => tweet.entities?.urls?.some(link => link.expanded_url === post.url) || tweet.text.startsWith(post.body))) {
-            throw new Error("Existing publication found; no recovery post allowed");
+        const image = readImage(post);
+        const reservation = `refs/tags/tanpo-x-reserved/${post.date}/${post.slot}`;
+        phase = "reservation lookup";
+        if (git("ls-remote", "--refs", "origin", reservation)) {
+          console.log(`Slot already reserved. Verify the original run before any recovery: ${reservation}`);
+        } else {
+          const { X_APP_KEY, X_APP_SECRET, X_ACCESS_TOKEN, X_ACCESS_SECRET } = process.env;
+          if (![X_APP_KEY, X_APP_SECRET, X_ACCESS_TOKEN, X_ACCESS_SECRET].every(Boolean)) {
+            throw new Error("Missing X credentials");
           }
-          console.log("Recovery check: no matching post in today's account timeline; original 402 reservation retained.");
+          const x = new TwitterApi({
+            appKey: X_APP_KEY, appSecret: X_APP_SECRET,
+            accessToken: X_ACCESS_TOKEN, accessSecret: X_ACCESS_SECRET,
+          }).readWrite;
+          phase = "media upload";
+          const mediaId = await x.v1.uploadMedia(image, { mimeType: "image/png" });
+          phase = "alt text";
+          await x.v1.createMediaMetadata(mediaId, { alt_text: { text: post.alt } });
+          phase = "reservation";
+          // Keep the reservation on every post attempt, including ambiguous API failures.
+          execFileSync("gh", [
+            "api", "--method", "POST", `repos/${process.env.GITHUB_REPOSITORY}/git/refs`,
+            "-f", `ref=${reservation}`, "-f", `sha=${process.env.GITHUB_SHA}`,
+          ], { stdio: "pipe" });
+          phase = "create post";
+          const { data } = await x.v2.tweet({
+            text: post.body + "\n\n" + post.url,
+            media: { media_ids: [mediaId] },
+          });
+          if (!/^\d+$/.test(data?.id ?? "")) throw new Error("Missing X post ID");
+          const result = { status: "posted", ...post, publicUrl: `https://x.com/i/web/status/${data.id}`, postId: data.id, mediaId };
+          writeFileSync(`x-publication-${post.slot}.json`, JSON.stringify(result, null, 2));
+          console.log(JSON.stringify(result));
+          phase = "verify publication";
+          const publication = await x.v2.singleTweet(data.id, {
+            expansions: ["attachments.media_keys"],
+            "tweet.fields": ["entities", "attachments", "created_at"],
+            "media.fields": ["url", "alt_text", "type", "width", "height"],
+          });
+          const media = verifyPublication(post, publication);
+          writeFileSync(`x-verification-${post.slot}.json`, JSON.stringify({ ...result, verified: true, publication }, null, 2));
+          console.log(JSON.stringify({ status: "verified", publicUrl: result.publicUrl, imageUrl: media[0].url }));
         }
-        phase = "media upload";
-        const mediaId = await x.v1.uploadMedia(image, { mimeType: "image/png" });
-        phase = "alt text";
-        await x.v1.createMediaMetadata(mediaId, { alt_text: { text: post.alt } });
-        phase = "reservation";
-        // Keep the reservation on every post attempt, including ambiguous API failures.
-        execFileSync("gh", [
-          "api", "--method", "POST", `repos/${process.env.GITHUB_REPOSITORY}/git/refs`,
-          "-f", `ref=${reservation}`, "-f", `sha=${process.env.GITHUB_SHA}`,
-        ], { stdio: "pipe" });
-        phase = "create post";
-        const { data } = await x.v2.tweet({
-          text: post.body + "\n\n" + post.url,
-          media: { media_ids: [mediaId] },
-        });
-        if (!/^\d+$/.test(data?.id ?? "")) throw new Error("Missing X post ID");
-        const result = { status: "posted", ...post, publicUrl: `https://x.com/i/web/status/${data.id}`, postId: data.id, mediaId };
-        writeFileSync(`x-publication-${post.slot}.json`, JSON.stringify(result, null, 2));
-        console.log(JSON.stringify(result));
-        phase = "verify publication";
-        const publication = await x.v2.singleTweet(data.id, {
-          expansions: ["attachments.media_keys"],
-          "tweet.fields": ["entities", "attachments", "created_at"],
-          "media.fields": ["url", "alt_text", "type", "width", "height"],
-        });
-        const media = publication.includes?.media || [];
-        if (!publication.data.text.startsWith(post.body + "\n\n") ||
-            !publication.data.entities?.urls?.some(link => link.expanded_url === post.url) ||
-            publication.data.attachments?.media_keys?.length !== 1 || media.length !== 1 ||
-            media[0].type !== "photo" || media[0].alt_text !== post.alt || !media[0].url) {
-          throw new Error("Public text, link or image does not match");
-        }
-        writeFileSync(`x-verification-${post.slot}.json`, JSON.stringify({ ...result, verified: true, publication }, null, 2));
-        console.log(JSON.stringify({ status: "verified", publicUrl: result.publicUrl, imageUrl: media[0].url }));
       }
     }
+  } catch (error) {
+    const status = Number.isInteger(error.code) ? ` (code ${error.code})` : "";
+    console.error(`X publishing failed at ${phase}${status}. Inspect the original run before retrying.`);
+    process.exitCode = 1;
   }
-} catch (error) {
-  const status = Number.isInteger(error.code) ? ` (code ${error.code})` : "";
-  console.error(`X publishing failed at ${phase}${status}. Inspect the original run before retrying.`);
-  process.exitCode = 1;
-}
 
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) await main();

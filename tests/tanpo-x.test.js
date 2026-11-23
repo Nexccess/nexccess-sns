@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { selectPost, main } from '../scripts/post-x-extra.js';
+import { selectPost, main, verifyPublication } from '../scripts/post-x-extra.js';
 
 test('JST campaign boundaries and invalid slots fail closed', () => {
   assert.equal(selectPost(new Date('2026-11-17T14:59:59Z'), 1), null);
@@ -44,5 +44,25 @@ test('untrusted local live execution cannot access publishing', async () => {
     process.env = saved;
     process.exitCode = 0;
     console.log = oldLog;
+  }
+});
+
+test('public verification rejects wrong copy, destination, image count and alt text', () => {
+  const post = selectPost(new Date('2026-11-23T02:00:00Z'), 2);
+  const good = {
+    data: { text: post.body + "\n\nhttps://t.co/example", entities: { urls: [{ expanded_url: post.url }] }, attachments: { media_keys: ['photo'] } },
+    includes: { media: [{ type: 'photo', alt_text: post.alt, url: 'https://pbs.twimg.com/media/example.jpg' }] },
+  };
+  assert.equal(verifyPublication(post, good).length, 1);
+  for (const mutate of [
+    value => { value.data.text = 'wrong'; },
+    value => { value.data.entities.urls[0].expanded_url = 'https://example.com/'; },
+    value => { value.data.attachments.media_keys.push('another'); },
+    value => { value.includes.media[0].alt_text = 'wrong'; },
+    value => { value.includes.media[0].type = 'video'; },
+  ]) {
+    const bad = structuredClone(good);
+    mutate(bad);
+    assert.throws(() => verifyPublication(post, bad));
   }
 });
