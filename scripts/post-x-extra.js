@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { TwitterApi } from "twitter-api-v2";
 
@@ -105,11 +105,15 @@ try {
     if (!post || !Number.isFinite(+startedAt) || jstDate.format(startedAt) !== post.date) {
       console.log("Outside the original JST publishing day or campaign window. No post.");
     } else {
-      if (process.env.GITHUB_ACTIONS !== "true" || process.env.GITHUB_REF !== "refs/heads/main") {
+      const releaseCheck = process.env.X_RELEASE_VERIFICATION === "1" &&
+        process.env.GITHUB_REF === "refs/heads/feature/tanpo-campaign-2026" &&
+        process.env.GITHUB_EVENT_NAME === "workflow_dispatch" && post.date === "2026-11-23" && [2, 3].includes(post.slot);
+      if (process.env.GITHUB_ACTIONS !== "true" || (process.env.GITHUB_REF !== "refs/heads/main" && !releaseCheck)) {
         throw new Error("Live publishing requires GitHub Actions on main");
       }
       const image = readImage(post);
-      const reservation = `refs/tags/tanpo-x-reserved/${post.date}/${post.slot}`;
+      const recovery = releaseCheck && post.slot === 2;
+      const reservation = `refs/tags/tanpo-x-reserved/${post.date}/${post.slot}${recovery ? "-recovery-1" : ""}`;
       phase = "reservation lookup";
       if (git("ls-remote", "--refs", "origin", reservation)) {
         console.log(`Slot already reserved. Verify the original run before any recovery: ${reservation}`);
@@ -122,6 +126,15 @@ try {
           appKey: X_APP_KEY, appSecret: X_APP_SECRET,
           accessToken: X_ACCESS_TOKEN, accessSecret: X_ACCESS_SECRET,
         }).readWrite;
+        if (recovery) {
+          phase = "recovery duplicate check";
+          const { data: owner } = await x.v2.me();
+          const timeline = await x.v2.userTimeline(owner.id, { max_results: 100, "tweet.fields": ["entities", "created_at"], start_time: "2026-11-22T15:00:00Z" });
+          if (timeline.tweets.some(tweet => tweet.entities?.urls?.some(link => link.expanded_url === post.url) || tweet.text.startsWith(post.body))) {
+            throw new Error("Existing publication found; no recovery post allowed");
+          }
+          console.log("Recovery check: no matching post in today's account timeline; original 402 reservation retained.");
+        }
         phase = "media upload";
         const mediaId = await x.v1.uploadMedia(image, { mimeType: "image/png" });
         phase = "alt text";
@@ -138,7 +151,24 @@ try {
           media: { media_ids: [mediaId] },
         });
         if (!/^\d+$/.test(data?.id ?? "")) throw new Error("Missing X post ID");
-        console.log(JSON.stringify({ status: "posted", ...post, publicUrl: `https://x.com/i/web/status/${data.id}` }));
+        const result = { status: "posted", ...post, publicUrl: `https://x.com/i/web/status/${data.id}`, postId: data.id, mediaId };
+        writeFileSync(`x-publication-${post.slot}.json`, JSON.stringify(result, null, 2));
+        console.log(JSON.stringify(result));
+        phase = "verify publication";
+        const publication = await x.v2.singleTweet(data.id, {
+          expansions: ["attachments.media_keys"],
+          "tweet.fields": ["entities", "attachments", "created_at"],
+          "media.fields": ["url", "alt_text", "type", "width", "height"],
+        });
+        const media = publication.includes?.media || [];
+        if (!publication.data.text.startsWith(post.body + "\n\n") ||
+            !publication.data.entities?.urls?.some(link => link.expanded_url === post.url) ||
+            publication.data.attachments?.media_keys?.length !== 1 || media.length !== 1 ||
+            media[0].type !== "photo" || media[0].alt_text !== post.alt || !media[0].url) {
+          throw new Error("Public text, link or image does not match");
+        }
+        writeFileSync(`x-verification-${post.slot}.json`, JSON.stringify({ ...result, verified: true, publication }, null, 2));
+        console.log(JSON.stringify({ status: "verified", publicUrl: result.publicUrl, imageUrl: media[0].url }));
       }
     }
   }
