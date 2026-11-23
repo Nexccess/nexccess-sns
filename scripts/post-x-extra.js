@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 import { TwitterApi } from "twitter-api-v2";
 
 const START = "2026-11-18";
@@ -85,6 +86,7 @@ function git(...args) {
   return execFileSync("git", args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
 }
 
+export async function main(now = new Date()) {
 let phase = "validation";
 try {
   if (process.env.DRY_RUN === "1") {
@@ -99,11 +101,11 @@ try {
     }
   } else {
     const startedAt = new Date(process.env.X_EVENT_CREATED_AT || "");
-    const post = selectPost(new Date(), Number(process.env.X_SLOT));
+    const post = selectPost(now, Number(process.env.X_SLOT));
     if (!post || !Number.isFinite(+startedAt) || jstDate.format(startedAt) !== post.date) {
       console.log("Outside the original JST publishing day or campaign window. No post.");
     } else {
-      if (process.env.GITHUB_ACTIONS !== "true" || (process.env.GITHUB_REF !== "refs/heads/main" && !(process.env.X_RELEASE_VERIFICATION === "1" && process.env.GITHUB_REF === "refs/heads/feature/tanpo-campaign-2026" && process.env.GITHUB_EVENT_NAME === "workflow_dispatch"))) {
+      if (process.env.GITHUB_ACTIONS !== "true" || process.env.GITHUB_REF !== "refs/heads/main") {
         throw new Error("Live publishing requires GitHub Actions on main");
       }
       const image = readImage(post);
@@ -145,3 +147,6 @@ try {
   console.error(`X publishing failed at ${phase}${status}. Inspect the original run before retrying.`);
   process.exitCode = 1;
 }
+
+}
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) await main();

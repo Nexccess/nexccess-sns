@@ -5,6 +5,7 @@ on:
     paths:
       - .github/workflows/tanpo-x-extra.yml
       - scripts/post-x-extra.js
+      - tests/tanpo-x.test.js
       - package-lock.json
       - assets/tanpo-*.svg
   workflow_dispatch:
@@ -49,12 +50,13 @@ jobs:
           for svg in assets/tanpo-*.svg; do
             LC_ALL=C.UTF-8 LANG=ja_JP.UTF-8 rsvg-convert "$svg" -o "${svg%.svg}.png"
           done
+      - run: node --test tests/tanpo-x.test.js
       - name: Validate all 132 posts without X credentials
         run: node scripts/post-x-extra.js
         env:
           DRY_RUN: "1"
       - name: Publish one X post
-        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/tanpo-campaign-2026') && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'live'))
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'live'))
         run: |
           set -euo pipefail
           for name in sns github-pages note hatena threads; do
@@ -65,7 +67,6 @@ jobs:
           export X_EVENT_CREATED_AT
           node scripts/post-x-extra.js
         env:
-          X_RELEASE_VERIFICATION: "1"
           GH_TOKEN: ${{ github.token }}
           X_SLOT: ${{ github.event_name == 'workflow_dispatch' && inputs.slot || (github.event.schedule == '18 22 * * *' && '1' || (github.event.schedule == '15 3 * * *' && '2' || '3')) }}
           X_APP_KEY: ${{ secrets.X_APP_KEY }}
