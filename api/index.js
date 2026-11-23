@@ -3,7 +3,7 @@
  * Vercel Serverless Functions — SNSパイプライン制御エンドポイント
  *
  * エンドポイント一覧:
- *   POST /api/trigger   GitHub Actions のワークフローを手動発火
+ *   POST /api/trigger   旧SNS配信の停止を通知
  *   POST /api/articles  新しい記事を articles.json に追加
  *   GET  /api/status    直近の投稿ログを返す
  *
@@ -13,12 +13,17 @@
 // ─────────────────────────────────────────────────
 // 簡易ルーター（Vercel は1ファイル1関数なので自前で振り分け）
 // ─────────────────────────────────────────────────
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   // CORS ヘッダー（Make / 外部Webhookから叩く場合に必要）
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
+
+  const url = req.url.split('?')[0];
+  if (req.method === 'POST' && url === '/api/trigger') {
+    return res.status(410).json({ error: 'Legacy SNS publishing is disabled' });
+  }
 
   // Bearer トークン認証（GitHub Secrets と同じ値を使用）
   const authHeader = req.headers.authorization ?? '';
@@ -26,12 +31,7 @@ module.exports = async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  const url = req.url.split('?')[0];
-
   try {
-    if (req.method === 'POST' && url === '/api/trigger') {
-      return await handleTrigger(req, res);
-    }
     if (req.method === 'POST' && url === '/api/articles') {
       return await handleAddArticle(req, res);
     }
@@ -44,47 +44,6 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ error: err.message });
   }
 };
-
-// ─────────────────────────────────────────────────
-// POST /api/trigger
-// GitHub Actions ワークフローを REST API 経由で発火
-// Body: { article_index?: number | "latest" }
-// ─────────────────────────────────────────────────
-async function handleTrigger(req, res) {
-  const { article_index = 'latest' } = req.body ?? {};
-
-  const ghRes = await fetch(
-    `https://api.github.com/repos/${process.env.GH_REPO}/actions/workflows/sns-pipeline.yml/dispatches`,
-    {
-      method: 'POST',
-      headers: {
-        Accept: 'application/vnd.github+json',
-        Authorization: `Bearer ${process.env.GH_PAT}`,
-        'X-GitHub-Api-Version': '2022-11-28',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        ref: 'main',
-        inputs: { article_index: String(article_index) },
-      }),
-    }
-  );
-
-  // GitHub は成功時 204 No Content を返す
-  if (ghRes.status === 204) {
-    return res.status(200).json({
-      ok: true,
-      message: 'ワークフローを発火しました',
-      article_index,
-    });
-  }
-
-  const errBody = await ghRes.text();
-  return res.status(ghRes.status).json({
-    ok: false,
-    error: `GitHub API エラー: ${errBody}`,
-  });
-}
 
 // ─────────────────────────────────────────────────
 // POST /api/articles

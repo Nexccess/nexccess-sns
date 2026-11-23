@@ -1,12 +1,14 @@
 name: GitHub Pages Pipeline
 
-on:
-  workflow_dispatch:
-  schedule:
-    - cron: "0 2 * * *"   # 毎日 JST 11:00
-
+# Legacy publishing paused. Original triggers are retained below for reference.
+# on:
+#   workflow_dispatch:
+#   schedule:
+#     - cron: "0 2 * * *"   # 毎日 JST 11:00
+on: workflow_call
 jobs:
   post:
+    if: ${{ false }}
     name: Generate and Post to GitHub Pages
     runs-on: ubuntu-latest
     timeout-minutes: 15
